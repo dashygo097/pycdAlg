@@ -1,7 +1,6 @@
 import unittest
 
 import algorithms.network.core as an
-import matplotlib.pyplot as plt
 import networkx as nx
 from utils.debuggers import timer
 
