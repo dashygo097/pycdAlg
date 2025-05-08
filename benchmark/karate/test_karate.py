@@ -11,26 +11,25 @@ class TestKarate(unittest.TestCase):
         G = nx.karate_club_graph()
         self.G = an.CommunityGraph(G)
 
-    @timer()
+    @timer
     def test_karate_louvain(self):
+        G = nx.karate_club_graph()
+        G = an.CommunityGraph(G)
         solver = an.LouvainSolver()
-        G_agg = solver.detect(self.G, iterations=5, informed=True)
+        G_agg = solver.detect(G, iterations=5, informed=True)
         print(f"Modularity : {G_agg.get_modularity()}")
-        print("")
 
-    @timer()
+    @timer
     def test_karate_louvain_cpm(self):
         solver = an.LouvainCPMSolver(resolution=0.2)
         G_agg = solver.detect(self.G, iterations=5, informed=True)
         print(f"Modularity : {G_agg.get_modularity()}")
-        print("")
 
-    @timer()
+    @timer
     def test_karate_leiden(self):
         solver = an.LeidenSolver()
-        G_agg = solver.detect(self.G, depth=3, iterations=2, informed=True)
+        G_agg = solver.detect(self.G, depth=2, iterations=3, informed=True)
         print(f"Modularity : {G_agg.get_modularity()}")
-        print("")
 
 
 if __name__ == "__main__":

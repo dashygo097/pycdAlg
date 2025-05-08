@@ -18,9 +18,25 @@ class LouvainSolver:
         The algorithm consists of two main phases: local optimization and aggregation.
     """
 
-    def __init__(self, resolution: float = 1.0, beta: float = 2.0) -> None:
+    def __init__(
+        self,
+        resolution: float = 1.0,
+        alpha: float = 0.9,
+        beta: float = 2.0,
+        allow_negative_move: bool = True,
+        negative_move_prob: float = 0.1,
+        negative_move_weight: float = 0.1,
+    ) -> None:
         self.resolution = resolution
+        self.alpha = alpha
         self.beta = beta
+
+        self.beta_runtime = beta
+
+        # Parameters for negative move
+        self.allow_negative_move = allow_negative_move
+        self.negative_move_prob = negative_move_prob
+        self.negative_move_weight = negative_move_weight
 
     def reset(self) -> None:
         pass
@@ -28,7 +44,13 @@ class LouvainSolver:
     def _get_name(self) -> str:
         return "Louvain"
 
-    def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> None:
+    def beta_schedule(self, total: int, epoch: int) -> None:
+        if epoch < total // 2:
+            self.beta_runtime = self.beta
+        else:
+            self.beta_runtime = self.beta_runtime * self.alpha
+
+    def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> bool:
         delta_C = -1
         communities = []
         weights = []
@@ -40,10 +62,17 @@ class LouvainSolver:
 
             delta = ki_in - self.resolution * ki * tot / (2 * G.m)
             if delta > 0:
-                weights.append(delta * self.beta)
+                weights.append(delta * self.beta_runtime)
                 communities.append(community)
 
-        if weights:
+            elif (
+                self.allow_negative_move
+                and np.random.random() < self.negative_move_prob
+            ):
+                weights.append(self.negative_move_weight * self.beta_runtime)
+                communities.append(community)
+
+        if any(w > 0 for w in weights):
             w_max = np.max(weights)
             weights = np.exp(weights - w_max)
             weights /= np.sum(weights, axis=0)
@@ -54,6 +83,10 @@ class LouvainSolver:
 
         if delta_C > -1:
             G.update_cnt(node, G.community_map[node], delta_C, neighborhood)
+            return True
+
+        else:
+            return False
 
     def sync(self, G: CommunityGraph, G_reg: CommunityGraph) -> None:
         for node in G.nodes:
@@ -86,7 +119,9 @@ class LouvainSolver:
             if tqdm_bar
             else range(iterations)
         ):
+            self.beta_schedule(iterations, iteration)
             nodes = list(G.nodes)
+
             if is_shuffle:
                 random.shuffle(nodes)
 
@@ -104,11 +139,23 @@ class LouvainSolver:
     ) -> CommunityGraph:
         name = self._get_name()
         G_reg = G
-        for level in tqdm(
-            range(depth + 1),
-            desc=colored(name + " Algorithm Progress", "green"),
-        ):
-            self.forward(G_reg, iterations, is_shuffle=is_shuffle, level=level)
+
+        if informed:
+            pbar = tqdm(
+                range(depth + 1),
+                desc=colored(name + " Algorithm Progress", "green"),
+            )
+        else:
+            pbar = range(depth + 1)
+
+        for level in pbar:
+            self.forward(
+                G_reg,
+                iterations,
+                is_shuffle=is_shuffle,
+                level=level,
+                tqdm_bar=True if informed else False,
+            )
             self.sync(G, G_reg)
 
             G_reg = G.aggregate()
