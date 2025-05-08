@@ -19,8 +19,9 @@ class LeidenSolver(LouvainSolver):
         The algorithm consists of three main phases: local moving, refinement, and aggregation.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, refine_iterations: int = 2, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.refine_iterations = refine_iterations
         self.queue = deque()
         self.v = {}
 
@@ -33,23 +34,32 @@ class LeidenSolver(LouvainSolver):
 
     # NOTE: Leiden specific
     def fast_local_move(self, G: CommunityGraph) -> None:
-        while self.queue:
-            node = self.queue.popleft()
-            self.v[node] = 0
-            old_community = G.community_map[node]
-            neighborhood = G.get_neighborhood(node)
+        moved = True
+        while moved:
+            moved = False
+            queue_size = self.queue.__len__()
 
-            self.move_node(G, node, neighborhood)
-            new_community = G.community_map[node]
+            for _ in range(queue_size):
+                node = self.queue.popleft()
+                self.v[node] = 0
+                old_community = G.community_map[node]
+                neighborhood = G.get_neighborhood(node)
 
-            if old_community == new_community:
-                continue
+                node_move = self.move_node(G, node, neighborhood)
+                moved = moved or node_move
 
-            for neighbor in nx.neighbors(G, node):
-                if G.community_map[neighbor] == old_community and self.v[neighbor] == 0:
-                    self.queue.append(neighbor)
-                    self.v[neighbor] = 1
-                    break
+                new_community = G.community_map[node]
+
+                if old_community == new_community:
+                    continue
+
+                for neighbor in nx.neighbors(G, node):
+                    if (
+                        G.community_map[neighbor] == old_community
+                        and self.v[neighbor] == 0
+                    ):
+                        self.queue.append(neighbor)
+                        self.v[neighbor] = 1
 
     # NOTE: Leiden specific
     def refine(self, G: CommunityGraph) -> None:
@@ -60,10 +70,16 @@ class LeidenSolver(LouvainSolver):
 
             induced_graph = nx.induced_subgraph(G, community)
             induced_graph = CommunityGraph(induced_graph)
-            self.forward(induced_graph, iterations=1, is_shuffle=True, tqdm_bar=False)
+            self.forward(
+                induced_graph,
+                iterations=self.refine_iterations,
+                is_shuffle=True,
+                tqdm_bar=False,
+            )
             for node in community:
                 self.update_refinement(G, induced_graph, node)
 
+    # NOTE: Leiden specific
     def update_refinement(
         self, G: CommunityGraph, induced_graph: CommunityGraph, node
     ) -> None:
@@ -105,6 +121,7 @@ class LeidenSolver(LouvainSolver):
             if tqdm_bar
             else range(iterations)
         ):
+            self.beta_schedule(iterations, iteration)
             if not self.queue or not self.v:
                 nodes = list(G.nodes)
                 if is_shuffle:
@@ -127,30 +144,50 @@ class LeidenSolver(LouvainSolver):
     ) -> CommunityGraph:
         name = self._get_name()
         G_reg = G
-        pbar = tqdm(
-            total=depth + 1, desc=colored(name + " Algorithm Progress", "green")
-        )
-        for level in range(depth + 1):
-            self.forward(G_reg, iterations, is_shuffle=is_shuffle, level=level)
 
-            # Leiden Refinement
-            pbar.set_description_str(
-                colored("Refining Communities... ", "green")
-                + "At "
-                + colored("LEVEL", "red")
-                + colored(str(level), "red")
+        if informed:
+            pbar = tqdm(
+                total=depth + 1, desc=colored(name + " Algorithm Progress", "green")
             )
-            self.refine(G_reg)
+        for level in range(depth + 1):
+            self.forward(
+                G_reg,
+                iterations,
+                is_shuffle=is_shuffle,
+                level=level,
+                tqdm_bar=True if informed else False,
+            )
+
+            if informed:
+                # Leiden Refinement
+                pbar.set_description_str(
+                    colored("Refining Communities... ", "green")
+                    + "At "
+                    + colored("LEVEL", "red")
+                    + colored(str(level), "red")
+                )
+
+            # FIXME: This is a placeholder for the refinement step
+            # self.refine(G_reg)
 
             self.sync(G, G_reg)
 
-            pbar.set_description_str(colored("Aggregating Communities...", "green"))
+            if informed:
+                pbar.set_description_str(
+                    colored("Syncing Communities...", "green")
+                    + "At "
+                    + colored("LEVEL", "red")
+                    + colored(str(level), "red")
+                )
+                pbar.set_description_str(colored("Aggregating Communities...", "green"))
             G_reg = G.aggregate()
 
-            pbar.set_description_str(colored(name + " Algorithm Progress", "green"))
-            pbar.update(1)
+            if informed:
+                pbar.set_description_str(colored(name + " Algorithm Progress", "green"))
+                pbar.update(1)
 
-        pbar.close()
+        if informed:
+            pbar.close()
 
         if informed:
             print("done!")

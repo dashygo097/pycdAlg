@@ -38,6 +38,8 @@ class CommunityGraph(nx.Graph):
         self.init_params()
 
     def init_params(self) -> None:
+        self.modularity = 0.0
+
         for node in self.nodes:
             self.communities[node] = [node]
             self.community_map[node] = node
@@ -61,8 +63,8 @@ class CommunityGraph(nx.Graph):
         neighborhood = defaultdict(float)
         for neighbor in self[node]:
             neighbor_community = self.community_map[neighbor]
-            weight = self[node][neighbor].get("weight", 1)
-            neighborhood[neighbor_community] += weight  # pyright: ignore
+            w = self[node][neighbor].get("weight", 1)
+            neighborhood[neighbor_community] += w  # pyright: ignore
 
         return neighborhood
 
@@ -73,7 +75,7 @@ class CommunityGraph(nx.Graph):
                 neighbour_community = self.community_map[neighbor]
                 w = self[node][neighbor].get("weight", 1)
                 if neighbor in community:
-                    neighborhood[neighbour_community] += w / 2  # pyright: ignore
+                    neighborhood[neighbour_community] += w / 2.0  # pyright: ignore
 
                 else:
                     neighborhood[neighbour_community] += w  # pyright: ignore
@@ -177,7 +179,7 @@ class CommunityGraph(nx.Graph):
 
         elif nodes is None and locally:
             print(
-                "WARNING: Vertices to be drawn are already the entire vertices of graph, locally automatically off."
+                "[WARN] Vertices to be drawn are already the entire vertices of graph, locally automatically off."
             )
             graph = self
 
@@ -224,7 +226,7 @@ class CommunityGraph(nx.Graph):
         edge_weights = edge_weights * edge_width
 
         nx.draw_networkx_nodes(
-            self,
+            graph,
             pos=positions,
             ax=ax,
             cmap=cmap,

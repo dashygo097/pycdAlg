@@ -16,14 +16,14 @@ class TestWebND(unittest.TestCase):
         )
         self.G = an.CommunityGraph(G)
 
-    @timer()
+    @timer
     def test_webND_louvain(self):
         solver = an.LouvainSolver()
         G_agg = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity: {G_agg.get_modularity()}")
         print("")
 
-    @timer()
+    @timer
     def test_webND_leiden(self):
         solver = an.LeidenSolver()
         G_agg = solver.detect(self.G, depth=2, iterations=2, informed=True)
