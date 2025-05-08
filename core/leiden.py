@@ -76,16 +76,19 @@ class LeidenSolver(LouvainSolver):
                 is_shuffle=True,
                 tqdm_bar=False,
             )
-            for node in community:
-                self.update_refinement(G, induced_graph, node)
+            self.update_refinement(G, induced_graph)
 
     # NOTE: Leiden specific
     def update_refinement(
-        self, G: CommunityGraph, induced_graph: CommunityGraph, node
+        self, G: CommunityGraph, induced_graph: CommunityGraph
     ) -> None:
-        G.communities[G.community_map[node]].remove(node)
-        G.communities[induced_graph.community_map[node]].append(node)
-        G.community_map[node] = induced_graph.community_map[node]
+        for node in induced_graph.nodes():
+            G.update_cnt(
+                node,
+                G.community_map[node],
+                induced_graph.community_map[node],
+                induced_graph.get_neighborhood(node),
+            )
 
     def sync(self, G: CommunityGraph, G_reg: CommunityGraph) -> None:
         super().sync(G, G_reg)
@@ -168,7 +171,7 @@ class LeidenSolver(LouvainSolver):
                 )
 
             # FIXME: This is a placeholder for the refinement step
-            # self.refine(G_reg)
+            self.refine(G_reg)
 
             self.sync(G, G_reg)
 
