@@ -19,7 +19,7 @@ class LeidenSolver(LouvainSolver):
         The algorithm consists of three main phases: local moving, refinement, and aggregation.
     """
 
-    def __init__(self, refine_iterations: int = 2, *args, **kwargs):
+    def __init__(self, refine_iterations: int = 1, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.refine_iterations = refine_iterations
         self.queue = deque()
@@ -170,7 +170,6 @@ class LeidenSolver(LouvainSolver):
                     + colored(str(level), "red")
                 )
 
-            # FIXME: This is a placeholder for the refinement step
             self.refine(G_reg)
 
             self.sync(G, G_reg)
