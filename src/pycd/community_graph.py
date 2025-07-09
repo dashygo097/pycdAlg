@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
+
 class CommunityGraph(nx.Graph):
     """
     Class Implemention of Multi-Communities

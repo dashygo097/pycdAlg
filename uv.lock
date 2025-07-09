@@ -392,7 +392,7 @@ dependencies = [
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "networkx", specifier = ">=3.5" },
-    { name = "numpy", specifier = ">=2.3.1" },
+    { name = "numpy", specifier = ">=2.2.1" },
     { name = "termcolor", specifier = ">=3.1.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
