@@ -1,0 +1,23 @@
+[project]
+name = "pycd"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "dashygo097", email = "dashygo097@github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.10.3",
+"networkx>=3.5",
+    "numpy>=2.2.1",
+    "termcolor>=3.1.0",
+    "tqdm>=4.67.1",
+]
+
+[project.scripts]
+pycd = "pycd:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

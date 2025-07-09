@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CURRENT_DIR=$(pwd)
+CURRENT_DIR=$(pwd)/../
 SCRIPT_DIR="$CURRENT_DIR/benchmark"
 
 run_test() {

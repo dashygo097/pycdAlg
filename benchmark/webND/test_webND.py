@@ -1,8 +1,9 @@
 import unittest
 
-import algorithms.network.core as an
 import networkx as nx
 from utils.debuggers import timer
+
+import pycd
 
 
 class TestWebND(unittest.TestCase):
@@ -14,18 +15,18 @@ class TestWebND(unittest.TestCase):
             nodetype=int,
             data=[("weight", float)],  # pyright: ignore
         )
-        self.G = an.CommunityGraph(G)
+        self.G = pycd.CommunityGraph(G)
 
     @timer
     def test_webND_louvain(self):
-        solver = an.LouvainSolver()
+        solver = pycd.LouvainSolver()
         G_agg = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity: {G_agg.get_modularity()}")
         print("")
 
     @timer
     def test_webND_leiden(self):
-        solver = an.LeidenSolver()
+        solver = pycd.LeidenSolver()
         G_agg = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity: {G_agg.get_modularity()}")
         print("")

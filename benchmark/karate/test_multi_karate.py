@@ -1,8 +1,9 @@
 import unittest
 
-import algorithms.network.core as an
 import networkx as nx
 from utils.debuggers import timer
+
+import pycd
 
 
 class TestMultiKarate(unittest.TestCase):
@@ -11,32 +12,32 @@ class TestMultiKarate(unittest.TestCase):
 
     @timer
     def test_karate_louvain_for_many_times(self):
-        solver = an.LouvainSolver()
+        solver = pycd.LouvainSolver()
         modularity = []
         for _ in range(1000):
             G = nx.karate_club_graph()
-            G = an.CommunityGraph(G)
+            G = pycd.CommunityGraph(G)
             G_agg = solver.detect(G, iterations=5, informed=False)
             modularity.append(G_agg.get_modularity())
         print(f"Average modularity : {sum(modularity) / len(modularity)}")
         print(
-            f"Variance : {sum((x - sum(modularity) / len(modularity)) ** 2 for x in modularity) / len(modularity)}"
+            f"Varipycdce : {sum((x - sum(modularity) / len(modularity)) ** 2 for x in modularity) / len(modularity)}"
         )
         print("")
 
     @timer
-    def test_karate_leiden_for_many_times(self):
-        solver = an.LeidenSolver()
+    def test_karate_leiden_for_mpycdy_times(self):
+        solver = pycd.LeidenSolver()
         modularity = []
         for _ in range(1000):
             G = nx.karate_club_graph()
-            G = an.CommunityGraph(G)
+            G = pycd.CommunityGraph(G)
             G_agg = solver.detect(G, depth=1, iterations=2, informed=False)
             modularity.append(G_agg.get_modularity())
 
         print(f"Average modularity : {sum(modularity) / len(modularity)}")
         print(
-            f"Variance : {sum((x - sum(modularity) / len(modularity)) ** 2 for x in modularity) / len(modularity)}"
+            f"Varipycdce : {sum((x - sum(modularity) / len(modularity)) ** 2 for x in modularity) / len(modularity)}"
         )
         print("")
 
