@@ -1,3 +1,4 @@
+import copy
 from typing import Dict
 
 import numpy as np
@@ -38,8 +39,7 @@ class LouvainSolver:
         self.negative_move_prob = negative_move_prob
         self.negative_move_weight = negative_move_weight
 
-    def reset(self) -> None:
-        pass
+    def reset(self) -> None: ...
 
     def _get_name(self) -> str:
         return "Louvain"
@@ -51,7 +51,7 @@ class LouvainSolver:
             self.beta_runtime = self.beta_runtime * self.alpha
 
     def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> bool:
-        delta_C = -1
+        delta_C = None
         communities = []
         weights = []
         # random choose a community but with more delta, the more likely to be chosen
@@ -77,21 +77,21 @@ class LouvainSolver:
             weights = np.exp(weights - w_max)
             weights /= np.sum(weights, axis=0)
             delta_C = random.choice(communities, p=weights)
-            # NOTE: delta_C turns out to be np.int64, not int
+            # NOTE: delta_C turns out to be numpy typed
             # NOTE: Maybe this is an issue with numpy's version
-            delta_C = int(delta_C) if isinstance(delta_C, np.integer) else delta_C
+            delta_C = delta_C.astype(object) if delta_C is not None else None
 
-        if delta_C > -1:
+        if delta_C is not None and delta_C != G.community_map[node]:
             G.update_cnt(node, G.community_map[node], delta_C, neighborhood)
             return True
 
         else:
             return False
 
-    def sync(self, G: CommunityGraph, G_reg: CommunityGraph) -> None:
+    def sync(self, G: CommunityGraph, G_: CommunityGraph) -> None:
         for node in G.nodes:
             old_community = G.community_map[node]
-            new_community = G_reg.community_map[old_community]
+            new_community = G_.community_map[old_community]
             if old_community != new_community:
                 neighborhood = G.get_neighborhood(node)
                 G.update_cnt(node, old_community, new_community, neighborhood)
@@ -138,7 +138,7 @@ class LouvainSolver:
         informed: bool = False,
     ) -> CommunityGraph:
         name = self._get_name()
-        G_reg = G
+        G_ = copy.deepcopy(G)
 
         if informed:
             pbar = tqdm(
@@ -150,15 +150,15 @@ class LouvainSolver:
 
         for level in pbar:
             self.forward(
-                G_reg,
+                G_,
                 iterations,
                 is_shuffle=is_shuffle,
                 level=level,
                 tqdm_bar=True if informed else False,
             )
-            self.sync(G, G_reg)
+            self.sync(G, G_)
 
-            G_reg = G.aggregate()
+            G_ = G.aggregate()
 
         if informed:
             print("done!")
@@ -166,8 +166,8 @@ class LouvainSolver:
                 "Current State: "
                 + colored(f"LEVEL{depth}", "red", attrs=["bold"])
                 + " with "
-                + colored(f"{G_reg.get_community_number()}", "yellow", attrs=["bold"])
+                + colored(f"{G_.get_community_number()}", "yellow", attrs=["bold"])
                 + " communities"
             )
         self.reset()
-        return G_reg
+        return G_

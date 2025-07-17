@@ -1,3 +1,4 @@
+import copy
 from collections import deque
 
 import networkx as nx
@@ -90,8 +91,8 @@ class LeidenSolver(LouvainSolver):
                 induced_graph.get_neighborhood(node),
             )
 
-    def sync(self, G: CommunityGraph, G_reg: CommunityGraph) -> None:
-        super().sync(G, G_reg)
+    def sync(self, G: CommunityGraph, G_: CommunityGraph) -> None:
+        super().sync(G, G_)
 
         q_len = self.queue.__len__()
 
@@ -146,22 +147,23 @@ class LeidenSolver(LouvainSolver):
         informed: bool = False,
     ) -> CommunityGraph:
         name = self._get_name()
-        G_reg = G
+        G_ = copy.deepcopy(G)
 
+        pbar = None
         if informed:
             pbar = tqdm(
                 total=depth + 1, desc=colored(name + " Algorithm Progress", "green")
             )
         for level in range(depth + 1):
             self.forward(
-                G_reg,
+                G_,
                 iterations,
                 is_shuffle=is_shuffle,
                 level=level,
                 tqdm_bar=True if informed else False,
             )
 
-            if informed:
+            if informed and pbar is not None:
                 # Leiden Refinement
                 pbar.set_description_str(
                     colored("Refining Communities... ", "green")
@@ -170,11 +172,11 @@ class LeidenSolver(LouvainSolver):
                     + colored(str(level), "red")
                 )
 
-            self.refine(G_reg)
+            self.refine(G_)
 
-            self.sync(G, G_reg)
+            self.sync(G, G_)
 
-            if informed:
+            if informed and pbar is not None:
                 pbar.set_description_str(
                     colored("Syncing Communities...", "green")
                     + "At "
@@ -182,13 +184,13 @@ class LeidenSolver(LouvainSolver):
                     + colored(str(level), "red")
                 )
                 pbar.set_description_str(colored("Aggregating Communities...", "green"))
-            G_reg = G.aggregate()
+            G_ = G.aggregate()
 
-            if informed:
+            if informed and pbar is not None:
                 pbar.set_description_str(colored(name + " Algorithm Progress", "green"))
                 pbar.update(1)
 
-        if informed:
+        if informed and pbar is not None:
             pbar.close()
 
         if informed:
@@ -197,8 +199,8 @@ class LeidenSolver(LouvainSolver):
                 "Current State: "
                 + colored(f"LEVEL{depth}", "red", attrs=["bold"])
                 + " with "
-                + colored(f"{G_reg.get_community_number()}", "yellow", attrs=["bold"])
+                + colored(f"{G_.get_community_number()}", "yellow", attrs=["bold"])
                 + " communities"
             )
         self.reset()
-        return G_reg
+        return G_

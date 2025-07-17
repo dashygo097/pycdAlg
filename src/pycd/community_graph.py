@@ -152,11 +152,12 @@ class CommunityGraph(nx.Graph):
             )
 
         G = nx.Graph()
-        for index, (_, community) in enumerate(inst.communities.items()):
+        for index, (node, community) in enumerate(inst.communities.items()):
             if community:
+                G.add_node(node)
                 neighborhood = inst.get_community_neighborhood(community)
                 for neighbor, weight in neighborhood.items():
-                    G.add_edge(index, neighbor, weight=weight)
+                    G.add_edge(node, neighbor, weight=weight)
 
         return cls(G)
 
@@ -201,12 +202,15 @@ class CommunityGraph(nx.Graph):
             """Just to remove the warnings and errors"""
             graph = self
 
-        cmap = plt.get_cmap(cmap)  # pyright: ignore
+        cmap = plt.get_cmap(cmap)
         positions = nx.spring_layout(
             graph, scale=20, k=3 / np.sqrt(self.order()), iterations=iterations
         )
 
-        degrees = dict(graph.degree(weight="weight"))  # pyright: ignore
+        degrees = dict(graph.degree(weight="weight"))
+        for node, degree in degrees.items():
+            if degree == 0:
+                degrees[node] = 0.5
         indexed = [self.community_map.get(node) for node in graph]
         weights = np.array([weight for node, weight in degrees.items()])
         weights = weights / np.max(weights) * node_size
@@ -231,15 +235,15 @@ class CommunityGraph(nx.Graph):
             ax=ax,
             cmap=cmap,
             label=True,
-            node_color=indexed,  # pyright: ignore
-            nodelist=dict(graph.degree),
+            node_color=indexed,
+            nodelist=degrees,
             node_size=weights,
         )
         nx.draw_networkx_edges(
             graph,
             ax=ax,
             edge_cmap=cmap,
-            edge_color=edge_indexed,  # pyright: ignore
+            edge_color=edge_indexed,
             width=edge_weights,
             pos=positions,
             alpha=0.2,
