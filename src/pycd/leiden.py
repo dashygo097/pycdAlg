@@ -41,22 +41,24 @@ class LeidenSolver(LouvainSolver):
             queue_size = self.queue.__len__()
 
             for _ in range(queue_size):
+                if self.queue.__len__() == 0:
+                    break
                 node = self.queue.popleft()
                 self.v[node] = 0
-                old_community = G.community_map[node]
+                old_community = G.nodes[node]["community"]
                 neighborhood = G.get_neighborhood(node)
 
                 node_move = self.move_node(G, node, neighborhood)
                 moved = moved or node_move
 
-                new_community = G.community_map[node]
+                new_community = G.nodes[node]["community"]
 
                 if old_community == new_community:
                     continue
 
-                for neighbor in nx.neighbors(G, node):
+                for neighbor in G[node]:
                     if (
-                        G.community_map[neighbor] == old_community
+                        G.nodes[neighbor]["community"] == old_community
                         and self.v[neighbor] == 0
                     ):
                         self.queue.append(neighbor)
@@ -86,8 +88,8 @@ class LeidenSolver(LouvainSolver):
         for node in induced_graph.nodes():
             G.update_cnt(
                 node,
-                G.community_map[node],
-                induced_graph.community_map[node],
+                G.nodes[node]["community"],
+                induced_graph.nodes[node]["community"],
                 induced_graph.get_neighborhood(node),
             )
 
@@ -97,7 +99,7 @@ class LeidenSolver(LouvainSolver):
         q_len = self.queue.__len__()
 
         for index in range(q_len):
-            self.queue[index] = G.community_map[self.queue[index]]
+            self.queue[index] = G.nodes[self.queue[index]]["community"]
 
         for node in G.nodes():
             self.v[node] = 1

@@ -1,5 +1,8 @@
 from typing import Dict
 
+import numpy as np
+import numpy.random as random
+
 from .community_graph import CommunityGraph
 from .louvain import LouvainSolver
 
@@ -19,19 +22,42 @@ class LouvainCPMSolver(LouvainSolver):
         return "LouvainCPM"
 
     # NOTE: CPM specific
-    def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> None:
-        delta_Q = 0
-        delta_C = -1
+    def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> bool:
+        delta_C = None
+        communities = []
+        weights = []
+
+        nc_old = len(G.communities[G.nodes[node]["community"]])
+
         for community in neighborhood.keys():
             ki_in = neighborhood[community]
             nc_new = len(G.communities[community])
-            nc_old = len(G.communities[G.community_map[node]])
 
             delta = ki_in - self.resolution * (nc_new - nc_old + 1)
 
-            if delta_Q < delta:
-                delta_Q = delta
-                delta_C = community
+            if delta > 0:
+                weights.append(delta * self.beta_runtime)
+                communities.append(community)
 
-        if delta_C >= 0:
-            G.update_cnt(node, G.community_map[node], delta_C, neighborhood)
+            elif (
+                self.allow_negative_move
+                and np.random.random() < self.negative_move_prob
+            ):
+                weights.append(self.negative_move_weight * self.beta_runtime)
+                communities.append(community)
+
+        if any(w > 0 for w in weights):
+            w_max = np.max(weights)
+            weights = np.exp(weights - w_max)
+            weights /= np.sum(weights, axis=0)
+            delta_C = random.choice(communities, p=weights)
+            # NOTE: delta_C turns out to be numpy typed
+            # NOTE: Maybe this is an issue with numpy's version
+            delta_C = delta_C.astype(object) if delta_C is not None else None
+
+        if delta_C is not None and delta_C != G.nodes[node]["community"]:
+            G.update_cnt(node, G.nodes[node]["community"], delta_C, neighborhood)
+            return True
+
+        else:
+            return False

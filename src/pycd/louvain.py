@@ -81,8 +81,8 @@ class LouvainSolver:
             # NOTE: Maybe this is an issue with numpy's version
             delta_C = delta_C.astype(object) if delta_C is not None else None
 
-        if delta_C is not None and delta_C != G.community_map[node]:
-            G.update_cnt(node, G.community_map[node], delta_C, neighborhood)
+        if delta_C is not None and delta_C != G.nodes[node]["community"]:
+            G.update_cnt(node, G.nodes[node]["community"], delta_C, neighborhood)
             return True
 
         else:
@@ -90,8 +90,9 @@ class LouvainSolver:
 
     def sync(self, G: CommunityGraph, G_: CommunityGraph) -> None:
         for node in G.nodes:
-            old_community = G.community_map[node]
-            new_community = G_.community_map[old_community]
+            old_community = G.nodes[node]["community"]
+            new_community = G_.nodes[old_community]["community"]
+
             if old_community != new_community:
                 neighborhood = G.get_neighborhood(node)
                 G.update_cnt(node, old_community, new_community, neighborhood)
@@ -156,6 +157,7 @@ class LouvainSolver:
                 level=level,
                 tqdm_bar=True if informed else False,
             )
+
             self.sync(G, G_)
 
             G_ = G.aggregate()

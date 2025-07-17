@@ -32,7 +32,6 @@ class CommunityGraph(nx.Graph):
         self.m = self.size(weight="weight")
 
         self.communities: Dict = {}
-        self.community_map: Dict = {}
         self.sigma_tot: Dict = {}
 
         self.init_params()
@@ -42,7 +41,7 @@ class CommunityGraph(nx.Graph):
 
         for node in self.nodes:
             self.communities[node] = [node]
-            self.community_map[node] = node
+            self.nodes[node]["community"] = node
             edges = self.edges(node, data=True)
             self.node2neigh[node] = sum(data.get("weight", 1) for _, _, data in edges)
             self.sigma_tot[node] = 0
@@ -52,7 +51,7 @@ class CommunityGraph(nx.Graph):
     ) -> None:
         self.communities[old_community].remove(node)
         self.communities[new_community].append(node)
-        self.community_map[node] = new_community
+        self.nodes[node]["community"] = new_community
         self.sigma_tot[new_community] += neighborhood[new_community]
         self.sigma_tot[old_community] -= neighborhood[old_community]
 
@@ -62,7 +61,7 @@ class CommunityGraph(nx.Graph):
     def get_neighborhood(self, node) -> Dict:
         neighborhood = defaultdict(float)
         for neighbor in self[node]:
-            neighbor_community = self.community_map[neighbor]
+            neighbor_community = self.nodes[neighbor]["community"]
             w = self[node][neighbor].get("weight", 1)
             neighborhood[neighbor_community] += w  # pyright: ignore
 
@@ -72,13 +71,13 @@ class CommunityGraph(nx.Graph):
         neighborhood = defaultdict(float)
         for node in community:
             for neighbor in self[node]:
-                neighbour_community = self.community_map[neighbor]
+                neighbor_community = self.nodes[neighbor]["community"]
                 w = self[node][neighbor].get("weight", 1)
                 if neighbor in community:
-                    neighborhood[neighbour_community] += w / 2.0  # pyright: ignore
+                    neighborhood[neighbor_community] += w / 2.0  # pyright: ignore
 
                 else:
-                    neighborhood[neighbour_community] += w  # pyright: ignore
+                    neighborhood[neighbor_community] += w  # pyright: ignore
 
         return neighborhood
 
@@ -211,11 +210,11 @@ class CommunityGraph(nx.Graph):
         for node, degree in degrees.items():
             if degree == 0:
                 degrees[node] = 0.5
-        indexed = [self.community_map.get(node) for node in graph]
-        weights = np.array([weight for node, weight in degrees.items()])
+        indexed = [self.nodes[node]["community"] for node in graph]
+        weights = np.array([weight for weight in degrees.values()])
         weights = weights / np.max(weights) * node_size
 
-        edge_indexed = [self.community_map.get(edge[0]) for edge in graph.edges()]
+        edge_indexed = [self.nodes[edge[0]]["community"] for edge in graph.edges()]
 
         edge_weights = np.array(
             [
