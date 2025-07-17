@@ -1,5 +1,6 @@
 import copy
 from collections import deque
+from itertools import repeat
 
 import networkx as nx
 from numpy import random
@@ -38,11 +39,8 @@ class LeidenSolver(LouvainSolver):
         moved = True
         while moved:
             moved = False
-            queue_size = self.queue.__len__()
 
-            for _ in range(queue_size):
-                if self.queue.__len__() == 0:
-                    break
+            while self.queue:
                 node = self.queue.popleft()
                 self.v[node] = 0
                 old_community = G.nodes[node]["community"]
@@ -97,7 +95,6 @@ class LeidenSolver(LouvainSolver):
         super().sync(G, G_)
 
         q_len = self.queue.__len__()
-
         for index in range(q_len):
             self.queue[index] = G.nodes[self.queue[index]]["community"]
 

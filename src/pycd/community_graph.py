@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import product
-from typing import Dict
+from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -15,13 +15,14 @@ class CommunityGraph(nx.Graph):
         Just a simple undirected weighted graph
     """
 
-    def __init__(self, graph=None, vertices=None, edges=None, *arg, **kwargs) -> None:
+    def __init__(
+        self, base_graph=None, vertices=None, edges=None, *arg, **kwargs
+    ) -> None:
         super().__init__(*arg, **kwargs)
 
-        if graph is not None and isinstance(graph, nx.Graph):
-            self.add_nodes_from(graph.nodes)
-            self.add_edges_from(graph.edges.data())
-
+        if base_graph is not None and isinstance(base_graph, nx.Graph):
+            self.add_nodes_from(base_graph.nodes)
+            self.add_edges_from(base_graph.edges.data())
         else:
             if vertices is not None:
                 self.add_nodes_from(vertices)
@@ -42,8 +43,9 @@ class CommunityGraph(nx.Graph):
         for node in self.nodes:
             self.communities[node] = [node]
             self.nodes[node]["community"] = node
-            edges = self.edges(node, data=True)
-            self.node2neigh[node] = sum(data.get("weight", 1) for _, _, data in edges)
+            self.node2neigh[node] = sum(
+                data.get("weight", 1) for _, _, data in self.edges(node, data=True)
+            )
             self.sigma_tot[node] = 0
 
     def update_cnt(
@@ -61,9 +63,9 @@ class CommunityGraph(nx.Graph):
     def get_neighborhood(self, node) -> Dict:
         neighborhood = defaultdict(float)
         for neighbor in self[node]:
-            neighbor_community = self.nodes[neighbor]["community"]
+            c = self.nodes[neighbor]["community"]
             w = self[node][neighbor].get("weight", 1)
-            neighborhood[neighbor_community] += w  # pyright: ignore
+            neighborhood[c] += w
 
         return neighborhood
 
@@ -71,39 +73,29 @@ class CommunityGraph(nx.Graph):
         neighborhood = defaultdict(float)
         for node in community:
             for neighbor in self[node]:
-                neighbor_community = self.nodes[neighbor]["community"]
+                c = self.nodes[neighbor]["community"]
                 w = self[node][neighbor].get("weight", 1)
                 if neighbor in community:
-                    neighborhood[neighbor_community] += w / 2.0  # pyright: ignore
-
+                    neighborhood[c] += w / 2.0
                 else:
-                    neighborhood[neighbor_community] += w  # pyright: ignore
+                    neighborhood[c] += w
 
         return neighborhood
 
     def get_community_number(self) -> int:
-        num_community = 0
-        for _, community in self.communities.items():
-            if community:
-                num_community += 1
+        return sum(1 for comm in self.communities.values() if comm)
 
-        return num_community
+    def get_modularity(
+        self, communities: Optional[Dict] = None, resolution: float = 1.0
+    ) -> float:
+        communities = communities or self.communities
 
-    def get_modularity(self, communities=None, resolution: float = 1.0) -> float:
-        if communities is None:
-            communities = self.communities
-
-        else:
-            assert isinstance(communities, Dict), (
-                "Paramater 'communities' should be a Dict type"
-            )
-
-        d = dict(self.degree(weight="weight"))  # pyright: ignore
+        d = dict(self.degree(weight="weight"))
         e = self.edges
 
         modularity = 0
 
-        for _, community in communities.items():
+        for community in communities.values():
             for v1, v2 in product(community, repeat=2):
                 try:
                     w = e[v1, v2].get("weight", 1)
@@ -119,15 +111,10 @@ class CommunityGraph(nx.Graph):
 
         return modularity / (2 * self.m)
 
-    def get_cpm(self, communities=None, resoluton: float = 1.0) -> float:
-        if communities is None:
-            communities = self.communities
-
-        else:
-            assert isinstance(communities, Dict), (
-                "Paramater 'communities' should be a Dict type"
-            )
-
+    def get_cpm(
+        self, communities: Optional[Dict] = None, resoluton: float = 1.0
+    ) -> float:
+        communities = communities or self.communities
         cpm = 0
 
         for _, community in communities.items():
@@ -166,84 +153,75 @@ class CommunityGraph(nx.Graph):
     def draw(
         self,
         ax,
-        nodes=None,
         iterations: int = 50,
         node_size: float = 500.0,
-        edge_width: float = 4.0,
+        edge_width: float = 2.0,
+        legend: bool = True,
         locally: bool = False,
         bfs_depth: int = 2,
         cmap: str = "viridis",
     ) -> None:
-        if nodes is None and not locally:
-            graph = self
-
-        elif nodes is None and locally:
-            print(
-                "[WARN] Vertices to be drawn are already the entire vertices of graph, locally automatically off."
-            )
-            graph = self
-
-        elif nodes is not None and locally:
-            vertices = nx.compose_all(
-                [
-                    nx.bfs_tree(
-                        self, source=node, depth_limit=bfs_depth
-                    ).to_undirected()
-                    for node in nodes
-                ]
-            ).nodes()
-            graph = nx.induced_subgraph(self, vertices)
-
-        elif nodes is not None and not locally:
-            graph = nx.induced_subgraph(self, nodes)
-
-        else:
-            """Just to remove the warnings and errors"""
-            graph = self
+        G = self
+        if locally:
+            G = self._extract_local_subgraph(depth=bfs_depth)
 
         cmap = plt.get_cmap(cmap)
         positions = nx.spring_layout(
-            graph, scale=20, k=3 / np.sqrt(self.order()), iterations=iterations
+            G, scale=20, k=3 / np.sqrt(self.order()), iterations=iterations
         )
 
-        degrees = dict(graph.degree(weight="weight"))
-        for node, degree in degrees.items():
-            if degree == 0:
-                degrees[node] = 0.5
-        indexed = [self.nodes[node]["community"] for node in graph]
+        degrees = dict(G.degree(weight="weight"))
+        for n, d in degrees.items():
+            if d == 0:
+                degrees[n] = 0.5
         weights = np.array([weight for weight in degrees.values()])
         weights = weights / np.max(weights) * node_size
 
-        edge_indexed = [self.nodes[edge[0]]["community"] for edge in graph.edges()]
-
-        edge_weights = np.array(
+        ews = np.array(
             [
                 data.get("weight", 1) * (v1 != v2) + 1
-                for v1, v2, data in graph.edges(data=True)
+                for v1, v2, data in G.edges(data=True)
             ]
         )
-        edge_weights = np.log2(edge_weights)
-        edge_weights = edge_weights / np.max(edge_weights)
-        condition = np.logical_and(0 < edge_weights, edge_weights < 0.1)
-        edge_weights[condition] = 0.1
-        edge_weights = edge_weights * edge_width
+        ews = np.log2(ews)
+        ews = ews / np.max(ews)
+        ews = np.clip(ews, 0.1, None) * edge_width
+
+        attrs = nx.get_node_attributes(G, "community")
+        unique = sorted(set(attrs.values()))
+        idx = {val: i for i, val in enumerate(unique)}
+
+        color_idx = [idx[attrs[n]] for n in G.nodes()]
+        edge_color_idx = [idx[attrs[v1]] for v1, _ in G.edges()]
+
+        cmap_obj = plt.get_cmap(cmap, len(unique))
 
         nx.draw_networkx_nodes(
-            graph,
+            G,
             pos=positions,
             ax=ax,
-            cmap=cmap,
             label=True,
-            node_color=indexed,
+            cmap=cmap_obj,
+            node_color=color_idx,
             nodelist=degrees,
             node_size=weights,
         )
         nx.draw_networkx_edges(
-            graph,
+            G,
             ax=ax,
             edge_cmap=cmap,
-            edge_color=edge_indexed,
-            width=edge_weights,
+            edge_color=edge_color_idx,
+            width=ews,
             pos=positions,
             alpha=0.2,
         )
+
+        ax.margins(0.05)
+        plt.tight_layout()
+
+    def _extract_local_subgraph(self, depth=2):
+        nodes = list(self.nodes())[:5]
+        bfs_nodes = set()
+        for n in nodes:
+            bfs_nodes |= set(nx.bfs_tree(self, source=n, depth_limit=depth))
+        return self.subgraph(bfs_nodes)
