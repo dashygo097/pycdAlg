@@ -80,6 +80,9 @@ class CommunityGraph(nx.Graph):
 
         return neighborhood
 
+    def get_community_number(self) -> int:
+        return sum(1 for comm in self.communities.values() if comm)
+
     def modularity(
         self, communities: Optional[Dict] = None, resolution: float = 1.0
     ) -> float:
