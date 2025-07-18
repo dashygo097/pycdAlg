@@ -1,6 +1,5 @@
 import copy
 from collections import deque
-from itertools import repeat
 
 import networkx as nx
 from numpy import random

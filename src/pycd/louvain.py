@@ -54,10 +54,11 @@ class LouvainSolver:
         delta_C = None
         communities = []
         weights = []
+
+        ki = G.node2neigh[node]
         # random choose a community but with more delta, the more likely to be chosen
         for community in neighborhood.keys():
             ki_in = neighborhood[community]
-            ki = G.node2neigh[node]
             tot = G.sigma_tot[community]
 
             delta = ki_in - self.resolution * ki * tot / (2 * G.m)

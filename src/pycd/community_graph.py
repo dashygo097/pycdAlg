@@ -156,7 +156,6 @@ class CommunityGraph(nx.Graph):
         iterations: int = 50,
         node_size: float = 500.0,
         edge_width: float = 2.0,
-        legend: bool = True,
         locally: bool = False,
         bfs_depth: int = 2,
         cmap: str = "viridis",

@@ -17,8 +17,8 @@ class TestMultiKarate(unittest.TestCase):
         for _ in range(1000):
             G = nx.karate_club_graph()
             G = pycd.CommunityGraph(G)
-            G_agg = solver.detect(G, iterations=7, informed=False)
-            modularity.append(G_agg.get_modularity())
+            G_ = solver.detect(G, iterations=7, informed=False)
+            modularity.append(G_.get_modularity())
         print(f"Average modularity : {sum(modularity) / len(modularity)}")
         print(
             f"Varipycdce : {sum((x - sum(modularity) / len(modularity)) ** 2 for x in modularity) / len(modularity)}"
@@ -32,8 +32,8 @@ class TestMultiKarate(unittest.TestCase):
         for _ in range(1000):
             G = nx.karate_club_graph()
             G = pycd.CommunityGraph(G)
-            G_agg = solver.detect(G, depth=1, iterations=3, informed=False)
-            modularity.append(G_agg.get_modularity())
+            G_ = solver.detect(G, depth=1, iterations=3, informed=False)
+            modularity.append(G_.get_modularity())
 
         print(f"Average modularity : {sum(modularity) / len(modularity)}")
         print(
