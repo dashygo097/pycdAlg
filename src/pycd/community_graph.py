@@ -38,8 +38,6 @@ class CommunityGraph(nx.Graph):
         self.init_params()
 
     def init_params(self) -> None:
-        self.modularity = 0.0
-
         for node in self.nodes:
             self.communities[node] = [node]
             self.nodes[node]["community"] = node
@@ -82,10 +80,7 @@ class CommunityGraph(nx.Graph):
 
         return neighborhood
 
-    def get_community_number(self) -> int:
-        return sum(1 for comm in self.communities.values() if comm)
-
-    def get_modularity(
+    def modularity(
         self, communities: Optional[Dict] = None, resolution: float = 1.0
     ) -> float:
         communities = communities or self.communities
@@ -111,9 +106,7 @@ class CommunityGraph(nx.Graph):
 
         return modularity / (2 * self.m)
 
-    def get_cpm(
-        self, communities: Optional[Dict] = None, resoluton: float = 1.0
-    ) -> float:
+    def cpm(self, communities: Optional[Dict] = None, resoluton: float = 1.0) -> float:
         communities = communities or self.communities
         cpm = 0
 

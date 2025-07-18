@@ -18,19 +18,19 @@ class TestKarate(unittest.TestCase):
         G = pycd.CommunityGraph(G)
         solver = pycd.LouvainSolver()
         G_ = solver.detect(G, iterations=5, informed=True)
-        print(f"Modularity : {G_.get_modularity()}")
+        print(f"Modularity : {G_.modularity()}")
 
     @timer
     def test_karate_louvain_cpm(self):
         solver = pycd.LouvainCPMSolver(resolution=0.2)
         G_ = solver.detect(self.G, iterations=5, informed=True)
-        print(f"Modularity : {G_.get_modularity()}")
+        print(f"Modularity : {G_.modularity()}")
 
     @timer
     def test_karate_leiden(self):
         solver = pycd.LeidenSolver()
         G_ = solver.detect(self.G, depth=2, iterations=3, informed=True)
-        print(f"Modularity : {G_.get_modularity()}")
+        print(f"Modularity : {G_.modularity()}")
 
 
 if __name__ == "__main__":
