@@ -1,7 +1,6 @@
 import unittest
 
 import networkx as nx
-from utils.debuggers import timer
 
 import pycd
 
@@ -10,7 +9,7 @@ class TestMultiKarate(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
 
-    @timer
+    @pycd.timer
     def test_karate_louvain_for_many_times(self):
         solver = pycd.LouvainSolver()
         modularity = []
@@ -25,7 +24,7 @@ class TestMultiKarate(unittest.TestCase):
         )
         print("")
 
-    @timer
+    @pycd.timer
     def test_karate_leiden_for_mpycdy_times(self):
         solver = pycd.LeidenSolver()
         modularity = []
