@@ -113,7 +113,7 @@ class CommunityGraph(nx.Graph):
         communities = communities or self.communities
         cpm = 0
 
-        for _, community in communities.items():
+        for community in communities.values():
             subG = nx.induced_subgraph(self, community)
             e_c = nx.number_of_edges(subG)
             n_c = nx.number_of_nodes(subG)
@@ -134,7 +134,7 @@ class CommunityGraph(nx.Graph):
             )
 
         G = nx.Graph()
-        for index, (node, community) in enumerate(inst.communities.items()):
+        for node, community in inst.communities.items():
             if community:
                 G.add_node(node)
                 neighborhood = inst.get_community_neighborhood(community)
@@ -214,7 +214,7 @@ class CommunityGraph(nx.Graph):
         ax.margins(0.05)
         plt.tight_layout()
 
-    def _extract_local_subgraph(self, depth=2):
+    def _extract_local_subgraph(self, depth: int) -> nx.Graph:
         nodes = list(self.nodes())[:5]
         bfs_nodes = set()
         for n in nodes:

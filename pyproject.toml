@@ -1,7 +1,7 @@
 [project]
 name = "pycd"
 version = "0.1.0"
-description = "Add your description here"
+description = "Community detection algorithms impled in python"
 readme = "README.md"
 authors = [
     { name = "dashygo097", email = "dashygo097@github.com" }
