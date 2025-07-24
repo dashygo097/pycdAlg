@@ -5,6 +5,8 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from matplotlib import patches as mpatches
+from matplotlib.animation import FuncAnimation
 
 
 class CommunityGraph(nx.Graph):
@@ -160,6 +162,7 @@ class CommunityGraph(nx.Graph):
 
     def draw(
         self,
+        fig,
         ax,
         iterations: int = 50,
         scale: float = 15.0,
@@ -180,11 +183,8 @@ class CommunityGraph(nx.Graph):
         )
 
         degrees = dict(G.degree(weight="weight"))
-        for n, d in degrees.items():
-            if d == 0:
-                degrees[n] = 0.5
-        weights = np.array([weight for weight in degrees.values()])
-        weights = weights / np.max(weights) * node_size
+        nws = np.array([weight for weight in degrees.values()])
+        nws = nws / np.max(nws) * node_size
 
         ews = np.array(
             [
@@ -201,22 +201,14 @@ class CommunityGraph(nx.Graph):
         idx = {val: i for i, val in enumerate(unique)}
 
         color_idx = [idx[attrs[n]] for n in G.nodes()]
-        edge_color_idx = [idx[attrs[v1]] for v1, _ in G.edges()]
         edge_color_idx = [(idx[attrs[u]] + idx[attrs[v]]) / 2 for u, v in G.edges()]
 
         cmap_obj = plt.get_cmap(cmap, len(unique))
 
-        nx.draw_networkx_nodes(
-            G,
-            pos=positions,
-            ax=ax,
-            label=True,
-            cmap=cmap_obj,
-            node_color=color_idx,
-            nodelist=degrees,
-            node_size=weights,
-        )
-        nx.draw_networkx_edges(
+        fig.patch.set_facecolor("white")
+        ax.set_facecolor("white")
+
+        edge_collection = nx.draw_networkx_edges(
             G,
             ax=ax,
             edge_cmap=cmap_obj,
@@ -225,6 +217,70 @@ class CommunityGraph(nx.Graph):
             pos=positions,
             alpha=edge_alpha,
         )
+
+        nodes = nx.draw_networkx_nodes(
+            G,
+            pos=positions,
+            ax=ax,
+            label=True,
+            cmap=cmap_obj,
+            node_color=color_idx,
+            nodelist=degrees,
+            node_size=nws,
+        )
+
+        self._animation = None
+
+        if nodes is not None:
+            nodes.set_visible(True)
+
+            annot = ax.annotate(
+                "",
+                xy=(0, 0),
+                xytext=(20, 20),
+                textcoords="offset points",
+                bbox=dict(boxstyle="round", fc="w"),
+                arrowprops=dict(arrowstyle="->"),
+            )
+            annot.set_visible(False)
+
+            node_list = list(G.nodes())
+            idx_to_node = {i: node for i, node in enumerate(node_list)}
+            hovered_index = [None]
+
+            def update_annot(ind):
+                i = ind["ind"][0]
+                node = idx_to_node[i]
+                annot.xy = positions[node]
+                annot.set_text(f"Node {node}\nCommunity {attrs[node]}")
+
+            def hover(event):
+                if event.inaxes == ax:
+                    cont, ind = nodes.contains(event)
+                    if cont:
+                        update_annot(ind)
+                        annot.set_visible(True)
+                        hovered_index[0] = ind["ind"][0]
+                        fig.canvas.draw_idle()
+                    else:
+                        if annot.get_visible():
+                            annot.set_visible(False)
+                            hovered_index[0] = None
+                            fig.canvas.draw_idle()
+
+            def animate(frame):
+                base_size = nws.copy()
+                if hovered_index[0] is not None:
+                    pulse = 1 + 0.3 * (np.sin(frame * 0.3) * 0.5 + 0.5)
+                    base_size[hovered_index[0]] *= pulse
+                nodes.set_sizes(base_size)
+                return [nodes]
+
+            fig.canvas.mpl_connect("motion_notify_event", hover)
+
+            self._animation = FuncAnimation(
+                fig, animate, frames=200, interval=50, blit=False, repeat=True
+            )
 
         ax.margins(0.05)
         plt.tight_layout()
