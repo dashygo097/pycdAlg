@@ -16,11 +16,23 @@ class CommunityGraph(nx.Graph):
     """
 
     def __init__(
-        self, base_graph=None, vertices=None, edges=None, *arg, **kwargs
+        self,
+        base_graph=None,
+        vertices=None,
+        edges=None,
+        drop_unconnected: bool = True,
+        *arg,
+        **kwargs,
     ) -> None:
         super().__init__(*arg, **kwargs)
+        self.drop_unconnected = drop_unconnected
 
         if base_graph is not None and isinstance(base_graph, nx.Graph):
+            if drop_unconnected:
+                base_graph = base_graph.copy()
+                base_graph.remove_nodes_from(
+                    [n for n, d in base_graph.degree() if d == 0]
+                )
             self.add_nodes_from(base_graph.nodes)
             self.add_edges_from(base_graph.edges.data())
         else:
@@ -150,19 +162,21 @@ class CommunityGraph(nx.Graph):
         self,
         ax,
         iterations: int = 50,
+        scale: float = 15.0,
+        k: float = 2.0,
+        edge_alpha: float = 0.25,
         node_size: float = 500.0,
         edge_width: float = 2.0,
         locally: bool = False,
         bfs_depth: int = 2,
-        cmap: str = "viridis",
+        cmap: str = "inferno",
     ) -> None:
         G = self
         if locally:
             G = self._extract_local_subgraph(depth=bfs_depth)
 
-        cmap = plt.get_cmap(cmap)
         positions = nx.spring_layout(
-            G, scale=20, k=3 / np.sqrt(self.order()), iterations=iterations
+            G, scale=scale, k=k / np.sqrt(self.order()), iterations=iterations
         )
 
         degrees = dict(G.degree(weight="weight"))
@@ -188,6 +202,7 @@ class CommunityGraph(nx.Graph):
 
         color_idx = [idx[attrs[n]] for n in G.nodes()]
         edge_color_idx = [idx[attrs[v1]] for v1, _ in G.edges()]
+        edge_color_idx = [(idx[attrs[u]] + idx[attrs[v]]) / 2 for u, v in G.edges()]
 
         cmap_obj = plt.get_cmap(cmap, len(unique))
 
@@ -204,11 +219,11 @@ class CommunityGraph(nx.Graph):
         nx.draw_networkx_edges(
             G,
             ax=ax,
-            edge_cmap=cmap,
+            edge_cmap=cmap_obj,
             edge_color=edge_color_idx,
             width=ews,
             pos=positions,
-            alpha=0.2,
+            alpha=edge_alpha,
         )
 
         ax.margins(0.05)
