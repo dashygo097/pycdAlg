@@ -5,7 +5,6 @@ from typing import Dict, Optional
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from matplotlib import patches as mpatches
 from matplotlib.animation import FuncAnimation
 
 
