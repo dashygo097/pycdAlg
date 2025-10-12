@@ -1,13 +1,13 @@
 #!/bin/bash
 
 CURRENT_DIR=$(pwd)/../
-SCRIPT_DIR="$CURRENT_DIR/benchmark"
+BENCHMARK_DIR="$CURRENT_DIR/benchmark"
 
 run_test() {
 	printf "\e[1;31m[NOTE] Enter JUST AN ENTER to quit FZF.\n\e[0m"
-	cd "$SCRIPT_DIR" || exit
+	cd "$BENCHMARK_DIR" || exit
 	while true; do
-		dir=$(find . -type d | grep -v "__pycache__" | grep -v "mlpackage" | grep -v "assets" | fzf)
+		dir=$(find . -type d | grep -v "__pycache__" | grep -v "datasets" | fzf)
 		if [ "$dir" == "." ]; then
 			printf "[INFO] Exiting...\n"
 			exit 0
