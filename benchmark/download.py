@@ -2,6 +2,7 @@ import gzip
 import os
 import shutil
 import urllib.request
+from pathlib import Path
 
 import requests
 from tqdm import tqdm
@@ -12,6 +13,10 @@ def download_dataset(url, dir=None, filename=None):
     if filename is None:
         filename = url.split("/")[-1]
     filename = os.path.join(dir, filename) if dir else filename
+
+    if Path(filename).exists():
+        print(f"File {filename} already exists. Skipping download.")
+        return filename
 
     def progress_hook(t):
         last_b = [0]
