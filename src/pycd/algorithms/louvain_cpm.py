@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import numpy.random as random
 
-from .community_graph import CommunityGraph
+from ..community_graph import CommunityGraph
 from .louvain import LouvainSolver
 
 

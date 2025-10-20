@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CURRENT_DIR=$(pwd)/../
-BENCHMARK_DIR="$CURRENT_DIR/benchmark"
+BASE_DIR=$(dirname $(cd "$(dirname "$0")" && pwd))
+BENCHMARK_DIR="$BASE_DIR/benchmark"
 
 run_all_tests() {
     printf "\e[1;32m[INFO] Running ALL unit tests...\e[0m\n"
@@ -11,7 +11,7 @@ run_all_tests() {
     
     if [ -z "$test_dirs" ]; then
         printf "\e[1;33m[WARNING] No test directories found!\e[0m\n"
-        cd "$CURRENT_DIR" || exit
+        cd "$BASE_DIR" || exit
         return 1
     fi
     
@@ -54,7 +54,7 @@ run_all_tests() {
         printf "\e[1;33m SOME TESTS FAILED!\e[0m\n"
     fi
     
-    cd "$CURRENT_DIR" || exit
+    cd "$BASE_DIR" || exit
     return $((total_dirs - passed_dirs))
 }
 

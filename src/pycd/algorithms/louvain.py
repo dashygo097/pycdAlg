@@ -6,7 +6,7 @@ import numpy.random as random
 from termcolor import colored
 from tqdm import tqdm
 
-from .community_graph import CommunityGraph
+from ..community_graph import CommunityGraph
 
 
 class LouvainSolver:

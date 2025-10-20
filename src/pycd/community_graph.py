@@ -134,6 +134,9 @@ class CommunityGraph(nx.Graph):
 
         return cpm
 
+    def aggregate(self):
+        return self._aggregate(self)
+
     @classmethod
     def _aggregate(cls, inst, communities=None):
         """Labels are discarded after aggregation. (label_returned=index only)"""
@@ -155,9 +158,6 @@ class CommunityGraph(nx.Graph):
                     G.add_edge(node, neighbor, weight=weight)
 
         return cls(G)
-
-    def aggregate(self):
-        return self._aggregate(self)
 
     def draw(
         self,

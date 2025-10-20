@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CURRENT_DIR=$(pwd)/../
-BENCHMARK_DIR="$CURRENT_DIR/benchmark"
+BASE_DIR=$(dirname $(cd "$(dirname "$0")" && pwd))
+BENCHMARK_DIR="$BASE_DIR/benchmark"
 
 run_test() {
 	printf "\e[1;31m[NOTE] Enter JUST AN ENTER to quit FZF.\n\e[0m"
@@ -21,7 +21,7 @@ run_test() {
 			printf "[ERROR] Directory not found.\n"
 		fi
 	done
-	cd "$CURRENT_DIR" || exit
+	cd "$BASE_DIR" || exit
 
 }
 
