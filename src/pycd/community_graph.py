@@ -1,6 +1,5 @@
 from collections import defaultdict
-from itertools import product
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -10,23 +9,21 @@ from matplotlib.animation import FuncAnimation
 
 class CommunityGraph(nx.Graph):
     """
-    Class Implemention of Multi-Communities
+    Enhanced graph implementation for community detection and analysis.
 
-    Description:
-        Just a simple undirected weighted graph
+    This class extends NetworkX Graph to provide sophisticated community
+    detection capabilities with multiple algorithms and visualization tools.
     """
 
     def __init__(
         self,
-        base_graph=None,
-        vertices=None,
-        edges=None,
+        base_graph: Optional[nx.Graph] = None,
+        vertices: Optional[List[Any]] = None,
+        edges: Optional[List[Any]] = None,
         drop_unconnected: bool = True,
-        *arg,
-        **kwargs,
     ) -> None:
-        super().__init__(*arg, **kwargs)
-        self.drop_unconnected = drop_unconnected
+        super().__init__()
+        self._drop_unconnected = drop_unconnected
 
         if base_graph is not None and isinstance(base_graph, nx.Graph):
             if drop_unconnected:
@@ -42,11 +39,11 @@ class CommunityGraph(nx.Graph):
             if edges is not None:
                 self.add_edges_from(edges)
 
-        self.node2neigh: Dict = {}
-        self.m = self.size(weight="weight")
+        self.node2neigh: Dict[Any, float] = {}
+        self.m: float = self.size(weight="weight")
 
-        self.communities: Dict = {}
-        self.sigma_tot: Dict = {}
+        self.communities: Dict[Any, List[Any]] = {}
+        self.sigma_tot: Dict[Any, float] = {}
 
         self.init_params()
 
@@ -55,9 +52,10 @@ class CommunityGraph(nx.Graph):
             self.communities[node] = [node]
             self.nodes[node]["community"] = node
             self.node2neigh[node] = sum(
-                data.get("weight", 1) for _, _, data in self.edges(node, data=True)
+                edge_data.get("weight", 1.0)
+                for _, _, edge_data in self.edges(node, data=True)
             )
-            self.sigma_tot[node] = 0
+            self.sigma_tot[node] = 0.0
 
     def update_cnt(
         self, node, old_community, new_community, neighborhood: Dict
@@ -65,17 +63,17 @@ class CommunityGraph(nx.Graph):
         self.communities[old_community].remove(node)
         self.communities[new_community].append(node)
         self.nodes[node]["community"] = new_community
-        self.sigma_tot[new_community] += neighborhood[new_community]
-        self.sigma_tot[old_community] -= neighborhood[old_community]
+        self.sigma_tot[new_community] += neighborhood.get(new_community, 0.0)
+        self.sigma_tot[old_community] -= neighborhood.get(old_community, 0.0)
 
     def get_partition(self) -> Dict:
-        return self.communities
+        return self.communities.copy()
 
     def get_neighborhood(self, node) -> Dict:
         neighborhood = defaultdict(float)
         for neighbor in self[node]:
             c = self.nodes[neighbor]["community"]
-            w = self[node][neighbor].get("weight", 1)
+            w = self[node][neighbor].get("weight", 1.0)
             neighborhood[c] += w
 
         return neighborhood
@@ -85,7 +83,7 @@ class CommunityGraph(nx.Graph):
         for node in community:
             for neighbor in self[node]:
                 c = self.nodes[neighbor]["community"]
-                w = self[node][neighbor].get("weight", 1)
+                w = self[node][neighbor].get("weight", 1.0)
                 if neighbor in community:
                     neighborhood[c] += w / 2.0
                 else:
@@ -95,44 +93,6 @@ class CommunityGraph(nx.Graph):
 
     def get_community_number(self) -> int:
         return sum(1 for comm in self.communities.values() if comm)
-
-    def modularity(
-        self, communities: Optional[Dict] = None, resolution: float = 1.0
-    ) -> float:
-        communities = communities or self.communities
-
-        d = dict(self.degree(weight="weight"))
-        e = self.edges
-
-        modularity = 0
-
-        for community in communities.values():
-            for v1, v2 in product(community, repeat=2):
-                try:
-                    w = e[v1, v2].get("weight", 1)
-                except KeyError:
-                    w = 0
-
-                if v1 == v2:
-                    w *= 2
-
-                modularity += w - resolution * float(d[v1]) * float(d[v2]) / (
-                    2 * self.m
-                )
-
-        return modularity / (2 * self.m)
-
-    def cpm(self, communities: Optional[Dict] = None, resoluton: float = 1.0) -> float:
-        communities = communities or self.communities
-        cpm = 0
-
-        for community in communities.values():
-            subG = nx.induced_subgraph(self, community)
-            e_c = nx.number_of_edges(subG)
-            n_c = nx.number_of_nodes(subG)
-            cpm += e_c - resoluton * n_c * (n_c - 1) / (2 * self.m)
-
-        return cpm
 
     def aggregate(self):
         return self._aggregate(self)
@@ -207,19 +167,19 @@ class CommunityGraph(nx.Graph):
         fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
 
-        edge_collection = nx.draw_networkx_edges(
+        nx.draw_networkx_edges(
             G,
+            positions,
             ax=ax,
             edge_cmap=cmap_obj,
             edge_color=edge_color_idx,
             width=ews,
-            pos=positions,
             alpha=edge_alpha,
         )
 
         nodes = nx.draw_networkx_nodes(
             G,
-            pos=positions,
+            positions,
             ax=ax,
             label=True,
             cmap=cmap_obj,
