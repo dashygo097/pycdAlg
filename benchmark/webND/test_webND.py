@@ -22,7 +22,7 @@ class TestWebND(unittest.TestCase):
             str(extracted_path),
             create_using=nx.Graph(),
             nodetype=int,
-            data=[("weight", float)],  # pyright: ignore
+            data=[("weight", float)],
         )
 
         self.G = pycd.CommunityGraph(G)

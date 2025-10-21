@@ -5,9 +5,12 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from matplotlib.animation import FuncAnimation
+from matplotlib.figure import Axes, Figure
+
+from .network import Network
 
 
-class CommunityGraph(nx.Graph):
+class CommunityGraph(Network):
     """
     Enhanced graph implementation for community detection and analysis.
 
@@ -22,32 +25,15 @@ class CommunityGraph(nx.Graph):
         edges: Optional[List[Any]] = None,
         drop_unconnected: bool = True,
     ) -> None:
-        super().__init__()
-        self._drop_unconnected = drop_unconnected
+        super().__init__(base_graph, vertices, edges, drop_unconnected)
 
-        if base_graph is not None:
-            if drop_unconnected:
-                base_graph = base_graph.copy()
-                base_graph.remove_nodes_from(
-                    [n for n, d in nx.degree(base_graph) if d == 0]
-                )
-            self.add_nodes_from(base_graph.nodes)
-            self.add_edges_from(base_graph.edges.data())
-        else:
-            if vertices is not None:
-                self.add_nodes_from(vertices)
-            if edges is not None:
-                self.add_edges_from(edges)
-
+    def initialize(self) -> None:
         self.node2neigh: Dict[Any, float] = {}
         self.m: float = self.size(weight="weight")
 
         self.communities: Dict[Any, List[Any]] = {}
         self.sigma_tot: Dict[Any, float] = {}
 
-        self.init_params()
-
-    def init_params(self) -> None:
         for node in self.nodes:
             self.communities[node] = [node]
             self.nodes[node]["community"] = node
@@ -57,19 +43,10 @@ class CommunityGraph(nx.Graph):
             )
             self.sigma_tot[node] = 0.0
 
-    def update_cnt(
-        self, node, old_community, new_community, neighborhood: Dict
-    ) -> None:
-        self.communities[old_community].remove(node)
-        self.communities[new_community].append(node)
-        self.nodes[node]["community"] = new_community
-        self.sigma_tot[new_community] += neighborhood.get(new_community, 0.0)
-        self.sigma_tot[old_community] -= neighborhood.get(old_community, 0.0)
-
-    def get_partition(self) -> Dict:
+    def get_partition(self) -> Dict[Any, List[Any]]:
         return self.communities.copy()
 
-    def get_neighborhood(self, node) -> Dict:
+    def get_neighborhood(self, node: Any) -> Dict[Any, float]:
         neighborhood = defaultdict(float)
         for neighbor in self[node]:
             c = self.nodes[neighbor]["community"]
@@ -78,7 +55,7 @@ class CommunityGraph(nx.Graph):
 
         return neighborhood
 
-    def get_community_neighborhood(self, community) -> Dict:
+    def get_community_neighborhood(self, community: List[Any]) -> Dict[Any, float]:
         neighborhood = defaultdict(float)
         for node in community:
             for neighbor in self[node]:
@@ -93,6 +70,15 @@ class CommunityGraph(nx.Graph):
 
     def get_community_number(self) -> int:
         return sum(1 for comm in self.communities.values() if comm)
+
+    def update_cnt(
+        self, node, old_community, new_community, neighborhood: Dict
+    ) -> None:
+        self.communities[old_community].remove(node)
+        self.communities[new_community].append(node)
+        self.nodes[node]["community"] = new_community
+        self.sigma_tot[new_community] += neighborhood.get(new_community, 0.0)
+        self.sigma_tot[old_community] -= neighborhood.get(old_community, 0.0)
 
     def aggregate(self):
         return self._aggregate(self)
@@ -121,8 +107,8 @@ class CommunityGraph(nx.Graph):
 
     def draw(
         self,
-        fig,
-        ax,
+        fig: Figure,
+        ax: Axes,
         iterations: int = 50,
         scale: float = 15.0,
         k: float = 2.0,
@@ -132,6 +118,7 @@ class CommunityGraph(nx.Graph):
         locally: bool = False,
         bfs_depth: int = 2,
         cmap: str = "inferno",
+        **kwargs,
     ) -> None:
         G = self
         if locally:
