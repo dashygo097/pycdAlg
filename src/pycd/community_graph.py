@@ -25,11 +25,11 @@ class CommunityGraph(nx.Graph):
         super().__init__()
         self._drop_unconnected = drop_unconnected
 
-        if base_graph is not None and isinstance(base_graph, nx.Graph):
+        if base_graph is not None:
             if drop_unconnected:
                 base_graph = base_graph.copy()
                 base_graph.remove_nodes_from(
-                    [n for n, d in base_graph.degree() if d == 0]
+                    [n for n, d in nx.degree(base_graph) if d == 0]
                 )
             self.add_nodes_from(base_graph.nodes)
             self.add_edges_from(base_graph.edges.data())
@@ -141,7 +141,7 @@ class CommunityGraph(nx.Graph):
             G, scale=scale, k=k / np.sqrt(self.order()), iterations=iterations
         )
 
-        degrees = dict(G.degree(weight="weight"))
+        degrees = dict(nx.degree(G, weight="weight"))
         nws = np.array([weight for weight in degrees.values()])
         nws = nws / np.max(nws) * node_size
 
@@ -181,7 +181,6 @@ class CommunityGraph(nx.Graph):
             G,
             positions,
             ax=ax,
-            label=True,
             cmap=cmap_obj,
             node_color=color_idx,
             nodelist=degrees,

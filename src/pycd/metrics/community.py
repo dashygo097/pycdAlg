@@ -1,7 +1,9 @@
-from ..community_graph import CommunityGraph
-import networkx as nx
-from typing import Dict, Optional
 from itertools import product
+from typing import Dict, Optional
+
+import networkx as nx
+
+from ..community_graph import CommunityGraph
 
 
 class CommunityMetrics:
@@ -12,7 +14,7 @@ class CommunityMetrics:
         resolution: float = 1.0,
     ) -> float:
         communities = communities or graph.communities
-        d = dict(graph.degree(weight="weight"))
+        d = dict(nx.degree(graph, weight="weight"))
         e = graph.edges
         m = graph.m
 

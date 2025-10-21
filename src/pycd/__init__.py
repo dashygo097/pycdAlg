@@ -1,5 +1,5 @@
 from .algorithms import *
-from .network import *
-from .metrics import *
 from .community_graph import *
+from .metrics import *
+from .network import *
 from .tools import *

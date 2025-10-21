@@ -30,14 +30,14 @@ class TestWebND(unittest.TestCase):
     @pycd.timer
     def test_webND_louvain(self):
         solver = pycd.LouvainSolver()
-        G_ = solver.detect(self.G, depth=2, iterations=5, informed=True)
+        G_ = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
         print("")
 
     @pycd.timer
     def test_webND_leiden(self):
         solver = pycd.LeidenSolver()
-        G_ = solver.detect(self.G, depth=2, iterations=5, informed=True)
+        G_ = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
         print("")
 
