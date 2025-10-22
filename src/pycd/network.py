@@ -25,7 +25,7 @@ class Network(ABC, nx.Graph):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self._drop_unconnected = drop_unconnected
+        self._drop_unconnected: bool = drop_unconnected
 
         self._build_from_input(graph, vertices, edges)
         self.initialize()

@@ -70,7 +70,7 @@ class CommunityGraph(Network):
         return neighborhood
 
     def community_number(self) -> int:
-        return sum(1 for comm in self._communities.values() if comm)
+        return len(self._communities)
 
     def update_cnt(
         self, node, old_community, new_community, neighborhood: Dict

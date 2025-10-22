@@ -1,4 +1,5 @@
 from collections import deque
+from typing import Any, Dict
 
 from numpy import random
 from termcolor import colored
@@ -18,27 +19,27 @@ class LeidenSolver(LouvainSolver):
         The algorithm consists of three main phases: local moving, refinement, and aggregation.
     """
 
-    def __init__(self, refine_iterations: int = 1, *args, **kwargs):
+    def __init__(self, refine_iterations: int = 1, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.refine_iterations = refine_iterations
-        self.queue = deque()
-        self.v = {}
+        self.refine_iterations: int = refine_iterations
+        self._queue: deque = deque()
+        self._v: Dict[Any, bool] = {}
 
     def reset(self) -> None:
-        self.queue = deque()
-        self.v = {}
+        self._queue.clear()
+        self._v = {}
 
     def _get_name(self) -> str:
         return "Leiden"
 
     # NOTE: Leiden specific
     def fast_local_move(self, graph: CommunityGraph) -> None:
-        while self.queue:
-            node = self.queue.popleft()
-            if node not in self.v or self.v[node] == 0:
+        while self._queue:
+            node = self._queue.popleft()
+            if not self._v[node]:
                 continue
 
-            self.v[node] = 0
+            self._v[node] = False
             old_community = graph.nodes[node]["community"]
             neighborhood = graph.neighborhood(node)
 
@@ -53,10 +54,10 @@ class LeidenSolver(LouvainSolver):
             for neighbor in graph[node]:
                 if (
                     graph.nodes[neighbor]["community"] == old_community
-                    and self.v[neighbor] == 0
+                    and self._v[neighbor] == 0
                 ):
-                    self.queue.append(neighbor)
-                    self.v[neighbor] = 1
+                    self._queue.append(neighbor)
+                    self._v[neighbor] = True
 
     # NOTE: Leiden specific
     def refine(self, graph: CommunityGraph) -> None:
@@ -85,11 +86,11 @@ class LeidenSolver(LouvainSolver):
     def sync(self, graph: CommunityGraph, graph_: CommunityGraph) -> None:
         super().sync(graph, graph_)
 
-        q_len = self.queue.__len__()
+        q_len = self._queue.__len__()
         for index in range(q_len):
-            self.queue[index] = graph.nodes[self.queue[index]]["community"]
+            self._queue[index] = graph.nodes[self._queue[index]]["community"]
 
-        self.v = {node: 1 for node in graph.nodes()}
+        self._v = {node: True for node in graph.nodes()}
 
     def forward(
         self,
@@ -115,15 +116,15 @@ class LeidenSolver(LouvainSolver):
             else range(iterations)
         ):
             self.beta_schedule(iterations, iteration)
-            if not self.queue or not self.v:
+            if not self._queue or not self._v:
                 nodes = list(graph.nodes)
                 if is_shuffle:
                     random.shuffle(nodes)
 
-                self.queue = deque(nodes)
+                self._queue = deque(nodes)
 
                 for node in graph.nodes():
-                    self.v[node] = 1
+                    self._v[node] = True
 
             self.fast_local_move(graph)
 
@@ -199,8 +200,8 @@ class LeidenSolver(LouvainSolver):
     def _refine_graph(self, graph: CommunityGraph) -> None:
         nodes = list(graph.nodes())
         random.shuffle(nodes)
-        self.queue = deque(nodes)
-        self.v = {n: 1 for n in nodes}
+        self._queue = deque(nodes)
+        self._v = {n: True for n in nodes}
 
         for _ in range(self.refine_iterations):
             self.fast_local_move(graph)

@@ -1,5 +1,5 @@
 import copy
-from typing import Dict
+from typing import Any, Dict
 
 import numpy as np
 import numpy.random as random
@@ -50,7 +50,9 @@ class LouvainSolver:
         else:
             self.beta_runtime = self.beta_runtime * self.alpha
 
-    def move_node(self, graph: CommunityGraph, node, neighborhood: Dict) -> bool:
+    def move_node(
+        self, graph: CommunityGraph, node: Any, neighborhood: Dict[Any, float]
+    ) -> bool:
         delta_C = None
         communities = []
         weights = []
