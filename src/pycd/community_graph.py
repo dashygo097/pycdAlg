@@ -73,7 +73,11 @@ class CommunityGraph(Network):
         return len(self._communities)
 
     def update_cnt(
-        self, node, old_community, new_community, neighborhood: Dict
+        self,
+        node: Any,
+        old_community: Any,
+        new_community: Any,
+        neighborhood: Dict[Any, float],
     ) -> None:
         self._communities[old_community].remove(node)
         self._communities[new_community].append(node)
