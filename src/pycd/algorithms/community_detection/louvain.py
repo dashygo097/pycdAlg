@@ -6,7 +6,7 @@ import numpy.random as random
 from termcolor import colored
 from tqdm import tqdm
 
-from ..community_graph import CommunityGraph
+from ...community_graph import CommunityGraph
 
 
 class LouvainSolver:
@@ -50,18 +50,18 @@ class LouvainSolver:
         else:
             self.beta_runtime = self.beta_runtime * self.alpha
 
-    def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> bool:
+    def move_node(self, graph: CommunityGraph, node, neighborhood: Dict) -> bool:
         delta_C = None
         communities = []
         weights = []
 
-        ki = G.node2neigh[node]
+        ki = graph.node2neigh[node]
         # random choose a community but with more delta, the more likely to be chosen
         for community in neighborhood.keys():
             ki_in = neighborhood[community]
-            tot = G.sigma_tot[community]
+            tot = graph.sigma_tot[community]
 
-            delta = ki_in - self.resolution * ki * tot / (2 * G.m)
+            delta = ki_in - self.resolution * ki * tot / (2 * graph.m)
             if delta > 0:
                 weights.append(delta * self.beta_runtime)
                 communities.append(community)
@@ -82,25 +82,27 @@ class LouvainSolver:
             # NOTE: Maybe this is an issue with numpy's version
             delta_C = delta_C.astype(object) if delta_C is not None else None
 
-        if delta_C is not None and delta_C != G.nodes[node]["community"]:
-            G.update_cnt(node, G.nodes[node]["community"], delta_C, neighborhood)
+        if delta_C is not None and delta_C != graph.nodes[node]["community"]:
+            graph.update_cnt(
+                node, graph.nodes[node]["community"], delta_C, neighborhood
+            )
             return True
 
         else:
             return False
 
-    def sync(self, G: CommunityGraph, G_: CommunityGraph) -> None:
-        for node in G.nodes:
-            old_community = G.nodes[node]["community"]
-            new_community = G_.nodes[old_community]["community"]
+    def sync(self, graph: CommunityGraph, graph_: CommunityGraph) -> None:
+        for node in graph.nodes:
+            old_community = graph.nodes[node]["community"]
+            new_community = graph_.nodes[old_community]["community"]
 
             if old_community != new_community:
-                neighborhood = G.get_neighborhood(node)
-                G.update_cnt(node, old_community, new_community, neighborhood)
+                neighborhood = graph.get_neighborhood(node)
+                graph.update_cnt(node, old_community, new_community, neighborhood)
 
     def forward(
         self,
-        G: CommunityGraph,
+        graph: CommunityGraph,
         iterations: int = 1,
         is_shuffle: bool = True,
         level: int = 0,
@@ -115,32 +117,32 @@ class LouvainSolver:
                 + colored("LEVEL", "red")
                 + colored(str(level), "red")
                 + " with "
-                + colored(str(G.get_community_number()), "yellow", attrs=["bold"])
+                + colored(str(graph.get_community_number()), "yellow", attrs=["bold"])
                 + " vertices",
             )
             if tqdm_bar
             else range(iterations)
         ):
             self.beta_schedule(iterations, iteration)
-            nodes = list(G.nodes)
+            nodes = list(graph.nodes)
 
             if is_shuffle:
                 random.shuffle(nodes)
 
             for node in nodes:
-                neighborhood = G.get_neighborhood(node)
-                self.move_node(G, node, neighborhood)
+                neighborhood = graph.get_neighborhood(node)
+                self.move_node(graph, node, neighborhood)
 
     def detect(
         self,
-        G: CommunityGraph,
+        graph: CommunityGraph,
         depth: int = 0,
         iterations: int = 2,
         is_shuffle: bool = True,
         informed: bool = False,
     ) -> CommunityGraph:
         name = self._get_name()
-        G_ = copy.deepcopy(G)
+        graph_ = copy.deepcopy(graph)
 
         if informed:
             pbar = tqdm(
@@ -152,16 +154,16 @@ class LouvainSolver:
 
         for level in pbar:
             self.forward(
-                G_,
+                graph_,
                 iterations,
                 is_shuffle=is_shuffle,
                 level=level,
                 tqdm_bar=True if informed else False,
             )
 
-            self.sync(G, G_)
+            self.sync(graph, graph_)
 
-            G_ = G.aggregate()
+            graph_ = graph.aggregate()
 
         if informed:
             print("done!")
@@ -169,8 +171,8 @@ class LouvainSolver:
                 "Current State: "
                 + colored(f"LEVEL{depth}", "red", attrs=["bold"])
                 + " with "
-                + colored(f"{G_.get_community_number()}", "yellow", attrs=["bold"])
+                + colored(f"{graph_.get_community_number()}", "yellow", attrs=["bold"])
                 + " communities"
             )
         self.reset()
-        return G_
+        return graph_

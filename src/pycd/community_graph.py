@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from matplotlib.animation import FuncAnimation
-from matplotlib.axis import Axis
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from .network import Network
@@ -21,12 +21,13 @@ class CommunityGraph(Network):
 
     def __init__(
         self,
-        base_graph: Optional[nx.Graph] = None,
+        graph: Optional[nx.Graph] = None,
         vertices: Optional[List[Any]] = None,
         edges: Optional[List[Any]] = None,
         drop_unconnected: bool = True,
+        **kwargs,
     ) -> None:
-        super().__init__(base_graph, vertices, edges, drop_unconnected)
+        super().__init__(graph, vertices, edges, drop_unconnected, **kwargs)
 
     def initialize(self) -> None:
         self.node2neigh: Dict[Any, float] = {}
@@ -84,32 +85,10 @@ class CommunityGraph(Network):
     def aggregate(self):
         return self._aggregate(self)
 
-    @classmethod
-    def _aggregate(cls, inst, communities=None):
-        """Labels are discarded after aggregation. (label_returned=index only)"""
-
-        if communities is None:
-            communities = inst.communities
-
-        else:
-            assert isinstance(communities, Dict), (
-                "Paramater 'communities' should be a Dict type"
-            )
-
-        G = nx.Graph()
-        for node, community in inst.communities.items():
-            if community:
-                G.add_node(node)
-                neighborhood = inst.get_community_neighborhood(community)
-                for neighbor, weight in neighborhood.items():
-                    G.add_edge(node, neighbor, weight=weight)
-
-        return cls(G)
-
     def draw(
         self,
         fig: Figure,
-        ax: Axis,
+        ax: Axes,
         iterations: int = 50,
         scale: float = 15.0,
         k: float = 2.0,
@@ -230,6 +209,28 @@ class CommunityGraph(Network):
 
         ax.margins(0.05)
         plt.tight_layout()
+
+    @classmethod
+    def _aggregate(cls, inst, communities=None):
+        """Labels are discarded after aggregation. (label_returned=index only)"""
+
+        if communities is None:
+            communities = inst.communities
+
+        else:
+            assert isinstance(communities, Dict), (
+                "Paramater 'communities' should be a Dict type"
+            )
+
+        G = nx.Graph()
+        for node, community in inst.communities.items():
+            if community:
+                G.add_node(node)
+                neighborhood = inst.get_community_neighborhood(community)
+                for neighbor, weight in neighborhood.items():
+                    G.add_edge(node, neighbor, weight=weight)
+
+        return cls(G)
 
     def _extract_local_subgraph(self, depth: int) -> nx.Graph:
         nodes = list(self.nodes())[:5]

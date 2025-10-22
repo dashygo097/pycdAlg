@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
 import networkx as nx
-from matplotlib.axis import Axis
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 
@@ -18,7 +18,7 @@ class Network(ABC, nx.Graph):
 
     def __init__(
         self,
-        base_graph: Optional[nx.Graph] = None,
+        graph: Optional[nx.Graph] = None,
         vertices: Optional[List[Any]] = None,
         edges: Optional[List[Any]] = None,
         drop_unconnected: bool = False,
@@ -27,7 +27,7 @@ class Network(ABC, nx.Graph):
         super().__init__(**kwargs)
         self._drop_unconnected = drop_unconnected
 
-        self._build_from_input(base_graph, vertices, edges)
+        self._build_from_input(graph, vertices, edges)
         self.initialize()
 
     def _build_from_input(
@@ -61,5 +61,5 @@ class Network(ABC, nx.Graph):
         pass
 
     @abstractmethod
-    def draw(self, fig: Figure, ax: Axis, **kwargs) -> None:
+    def draw(self, fig: Figure, ax: Axes, **kwargs) -> None:
         pass

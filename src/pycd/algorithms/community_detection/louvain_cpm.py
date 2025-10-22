@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import numpy.random as random
 
-from ..community_graph import CommunityGraph
+from ...community_graph import CommunityGraph
 from .louvain import LouvainSolver
 
 
@@ -22,16 +22,16 @@ class LouvainCPMSolver(LouvainSolver):
         return "LouvainCPM"
 
     # NOTE: CPM specific
-    def move_node(self, G: CommunityGraph, node, neighborhood: Dict) -> bool:
+    def move_node(self, graph: CommunityGraph, node, neighborhood: Dict) -> bool:
         delta_C = None
         communities = []
         weights = []
 
-        nc_old = len(G.communities[G.nodes[node]["community"]])
+        nc_old = len(graph.communities[graph.nodes[node]["community"]])
 
         for community in neighborhood.keys():
             ki_in = neighborhood[community]
-            nc_new = len(G.communities[community])
+            nc_new = len(graph.communities[community])
 
             delta = ki_in - self.resolution * (nc_new - nc_old + 1)
 
@@ -55,8 +55,10 @@ class LouvainCPMSolver(LouvainSolver):
             # NOTE: Maybe this is an issue with numpy's version
             delta_C = delta_C.astype(object) if delta_C is not None else None
 
-        if delta_C is not None and delta_C != G.nodes[node]["community"]:
-            G.update_cnt(node, G.nodes[node]["community"], delta_C, neighborhood)
+        if delta_C is not None and delta_C != graph.nodes[node]["community"]:
+            graph.update_cnt(
+                node, graph.nodes[node]["community"], delta_C, neighborhood
+            )
             return True
 
         else:

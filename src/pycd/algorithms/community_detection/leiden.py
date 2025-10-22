@@ -1,12 +1,10 @@
-import copy
 from collections import deque
 
-import networkx as nx
 from numpy import random
 from termcolor import colored
 from tqdm import tqdm
 
-from ..community_graph import CommunityGraph
+from ...community_graph import CommunityGraph
 from .louvain import LouvainSolver
 
 
@@ -34,75 +32,69 @@ class LeidenSolver(LouvainSolver):
         return "Leiden"
 
     # NOTE: Leiden specific
-    def fast_local_move(self, G: CommunityGraph) -> None:
-        moved = True
-        while moved:
-            moved = False
-
-            while self.queue:
-                node = self.queue.popleft()
-                self.v[node] = 0
-                old_community = G.nodes[node]["community"]
-                neighborhood = G.get_neighborhood(node)
-
-                node_move = self.move_node(G, node, neighborhood)
-                moved = moved or node_move
-
-                new_community = G.nodes[node]["community"]
-
-                if old_community == new_community:
-                    continue
-
-                for neighbor in G[node]:
-                    if (
-                        G.nodes[neighbor]["community"] == old_community
-                        and self.v[neighbor] == 0
-                    ):
-                        self.queue.append(neighbor)
-                        self.v[neighbor] = 1
-
-    # NOTE: Leiden specific
-    def refine(self, G: CommunityGraph) -> None:
-        communities = G.get_partition()
-        for community in communities.values():
-            if not community:
+    def fast_local_move(self, graph: CommunityGraph) -> None:
+        while self.queue:
+            node = self.queue.popleft()
+            if node not in self.v or self.v[node] == 0:
                 continue
 
-            induced_graph = nx.induced_subgraph(G, community)
+            self.v[node] = 0
+            old_community = graph.nodes[node]["community"]
+            neighborhood = graph.get_neighborhood(node)
+
+            node_moved = self.move_node(graph, node, neighborhood)
+            if not node_moved:
+                continue
+
+            new_community = graph.nodes[node]["community"]
+
+            if old_community == new_community:
+                continue
+
+            for neighbor in graph[node]:
+                if (
+                    graph.nodes[neighbor]["community"] == old_community
+                    and self.v[neighbor] == 0
+                ):
+                    self.queue.append(neighbor)
+                    self.v[neighbor] = 1
+
+    # NOTE: Leiden specific
+    def refine(self, graph: CommunityGraph) -> None:
+        communities = graph.get_partition()
+        non_empty = [c for c in communities.values() if c]
+
+        for community in non_empty:
+            induced_graph = graph.subgraph(community)
             induced_graph = CommunityGraph(induced_graph)
-            self.forward(
-                induced_graph,
-                iterations=self.refine_iterations,
-                is_shuffle=True,
-                tqdm_bar=False,
-            )
-            self.update_refinement(G, induced_graph)
+
+            self._refine_graph(induced_graph)
+            self.update_refinement(graph, induced_graph)
 
     # NOTE: Leiden specific
     def update_refinement(
-        self, G: CommunityGraph, induced_graph: CommunityGraph
+        self, graph: CommunityGraph, induced_graph: CommunityGraph
     ) -> None:
         for node in induced_graph.nodes():
-            G.update_cnt(
+            graph.update_cnt(
                 node,
-                G.nodes[node]["community"],
+                graph.nodes[node]["community"],
                 induced_graph.nodes[node]["community"],
                 induced_graph.get_neighborhood(node),
             )
 
-    def sync(self, G: CommunityGraph, G_: CommunityGraph) -> None:
-        super().sync(G, G_)
+    def sync(self, graph: CommunityGraph, graph_: CommunityGraph) -> None:
+        super().sync(graph, graph_)
 
         q_len = self.queue.__len__()
         for index in range(q_len):
-            self.queue[index] = G.nodes[self.queue[index]]["community"]
+            self.queue[index] = graph.nodes[self.queue[index]]["community"]
 
-        for node in G.nodes():
-            self.v[node] = 1
+        self.v = {node: 1 for node in graph.nodes()}
 
     def forward(
         self,
-        G: CommunityGraph,
+        graph: CommunityGraph,
         iterations: int = 1,
         is_shuffle: bool = True,
         level: int = 0,
@@ -117,7 +109,7 @@ class LeidenSolver(LouvainSolver):
                 + colored("LEVEL", "red")
                 + colored(str(level), "red")
                 + " with "
-                + colored(str(G.get_community_number()), "yellow", attrs=["bold"])
+                + colored(str(graph.get_community_number()), "yellow", attrs=["bold"])
                 + " vertices",
             )
             if tqdm_bar
@@ -125,27 +117,27 @@ class LeidenSolver(LouvainSolver):
         ):
             self.beta_schedule(iterations, iteration)
             if not self.queue or not self.v:
-                nodes = list(G.nodes)
+                nodes = list(graph.nodes)
                 if is_shuffle:
                     random.shuffle(nodes)
 
                 self.queue = deque(nodes)
 
-                for node in G.nodes():
+                for node in graph.nodes():
                     self.v[node] = 1
 
-            self.fast_local_move(G)
+            self.fast_local_move(graph)
 
     def detect(
         self,
-        G: CommunityGraph,
+        graph: CommunityGraph,
         depth: int = 0,
         iterations: int = 2,
         is_shuffle: bool = True,
         informed: bool = False,
     ) -> CommunityGraph:
         name = self._get_name()
-        G_ = copy.deepcopy(G)
+        graph_ = CommunityGraph(graph)
 
         pbar = None
         if informed:
@@ -154,7 +146,7 @@ class LeidenSolver(LouvainSolver):
             )
         for level in range(depth + 1):
             self.forward(
-                G_,
+                graph_,
                 iterations,
                 is_shuffle=is_shuffle,
                 level=level,
@@ -170,9 +162,11 @@ class LeidenSolver(LouvainSolver):
                     + colored(str(level), "red")
                 )
 
-            self.refine(G_)
+            self.sync(graph, graph_)
 
-            self.sync(G, G_)
+            # Refinement
+            for _ in range(self.refine_iterations):
+                self.refine(graph_)
 
             if informed and pbar is not None:
                 pbar.set_description_str(
@@ -182,7 +176,7 @@ class LeidenSolver(LouvainSolver):
                     + colored(str(level), "red")
                 )
                 pbar.set_description_str(colored("Aggregating Communities...", "green"))
-            G_ = G.aggregate()
+            graph_ = graph.aggregate()
 
             if informed and pbar is not None:
                 pbar.set_description_str(colored(name + " Algorithm Progress", "green"))
@@ -197,8 +191,17 @@ class LeidenSolver(LouvainSolver):
                 "Current State: "
                 + colored(f"LEVEL{depth}", "red", attrs=["bold"])
                 + " with "
-                + colored(f"{G_.get_community_number()}", "yellow", attrs=["bold"])
+                + colored(f"{graph_.get_community_number()}", "yellow", attrs=["bold"])
                 + " communities"
             )
         self.reset()
-        return G_
+        return graph_
+
+    def _refine_graph(self, graph: CommunityGraph) -> None:
+        nodes = list(graph.nodes())
+        random.shuffle(nodes)
+        self.queue = deque(nodes)
+        self.v = {n: 1 for n in nodes}
+
+        for _ in range(self.refine_iterations):
+            self.fast_local_move(graph)

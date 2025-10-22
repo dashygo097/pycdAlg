@@ -32,6 +32,9 @@ class TestWebND(unittest.TestCase):
         solver = pycd.LouvainSolver()
         G_ = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
+        print(
+            f"Community-Level Seperations : {pycd.CommunityMetrics.community_level_seperations(G_)}"
+        )
         print("")
 
     @pycd.timer
@@ -39,6 +42,9 @@ class TestWebND(unittest.TestCase):
         solver = pycd.LeidenSolver()
         G_ = solver.detect(self.G, depth=2, iterations=2, informed=True)
         print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
+        print(
+            f"Community-Level Seperations : {pycd.CommunityMetrics.community_level_seperations(G_)}"
+        )
         print("")
 
 
