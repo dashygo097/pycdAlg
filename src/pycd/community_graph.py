@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from matplotlib.animation import FuncAnimation
-from matplotlib.figure import Axes, Figure
+from matplotlib.axis import Axis
+from matplotlib.figure import Figure
 
 from .network import Network
 
@@ -108,7 +109,7 @@ class CommunityGraph(Network):
     def draw(
         self,
         fig: Figure,
-        ax: Axes,
+        ax: Axis,
         iterations: int = 50,
         scale: float = 15.0,
         k: float = 2.0,

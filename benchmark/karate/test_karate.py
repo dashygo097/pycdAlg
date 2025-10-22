@@ -25,7 +25,7 @@ class TestKarate(unittest.TestCase):
         G = pycd.CommunityGraph(G)
         solver = pycd.LouvainCPMSolver(resolution=0.2)
         G_ = solver.detect(G, iterations=5, informed=True)
-        print(f"CPM : {pycd.CommunityMetrics.cpm(G_)}")
+        print(f"CPM : {pycd.CommunityMetrics.cpm(G_, resolution=0.2)}")
 
     @pycd.timer
     def test_karate_leiden(self):

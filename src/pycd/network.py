@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import networkx as nx
-from matplotlib.figure import Axes, Figure
+from matplotlib.axis import Axis
+from matplotlib.figure import Figure
 
 
 class Network(ABC, nx.Graph):
@@ -12,8 +13,7 @@ class Network(ABC, nx.Graph):
     This class extends NetworkX Graph to provide a common interface for
     various network types (community detection, flow networks, etc.).
 
-    All subclasses must implement the abstract methods for validation,
-    analysis, and visualization.
+    All subclasses must implement the abstract methods.
     """
 
     def __init__(
@@ -61,5 +61,5 @@ class Network(ABC, nx.Graph):
         pass
 
     @abstractmethod
-    def draw(self, fig: Figure, ax: Axes, **kwargs) -> None:
+    def draw(self, fig: Figure, ax: Axis, **kwargs) -> None:
         pass
