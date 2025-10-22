@@ -61,7 +61,7 @@ class LouvainSolver:
             ki_in = neighborhood[community]
             tot = graph.sigma_tot[community]
 
-            delta = ki_in - self.resolution * ki * tot / (2 * graph.m)
+            delta = ki_in - self.resolution * ki * tot / (2 * graph.total_weight)
             if delta > 0:
                 weights.append(delta * self.beta_runtime)
                 communities.append(community)
@@ -97,7 +97,7 @@ class LouvainSolver:
             new_community = graph_.nodes[old_community]["community"]
 
             if old_community != new_community:
-                neighborhood = graph.get_neighborhood(node)
+                neighborhood = graph.neighborhood(node)
                 graph.update_cnt(node, old_community, new_community, neighborhood)
 
     def forward(
@@ -117,7 +117,7 @@ class LouvainSolver:
                 + colored("LEVEL", "red")
                 + colored(str(level), "red")
                 + " with "
-                + colored(str(graph.get_community_number()), "yellow", attrs=["bold"])
+                + colored(str(graph.community_number()), "yellow", attrs=["bold"])
                 + " vertices",
             )
             if tqdm_bar
@@ -130,7 +130,7 @@ class LouvainSolver:
                 random.shuffle(nodes)
 
             for node in nodes:
-                neighborhood = graph.get_neighborhood(node)
+                neighborhood = graph.neighborhood(node)
                 self.move_node(graph, node, neighborhood)
 
     def detect(
@@ -163,7 +163,7 @@ class LouvainSolver:
 
             self.sync(graph, graph_)
 
-            graph_ = graph.aggregate()
+            graph_ = graph.aggregate_into()
 
         if informed:
             print("done!")
@@ -171,7 +171,7 @@ class LouvainSolver:
                 "Current State: "
                 + colored(f"LEVEL{depth}", "red", attrs=["bold"])
                 + " with "
-                + colored(f"{graph_.get_community_number()}", "yellow", attrs=["bold"])
+                + colored(f"{graph_.community_number()}", "yellow", attrs=["bold"])
                 + " communities"
             )
         self.reset()

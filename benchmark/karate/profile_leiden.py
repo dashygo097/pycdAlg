@@ -14,10 +14,10 @@ if __name__ == "__main__":
 
     modularity = []
     for _ in range(1000):
-        G = nx.karate_club_graph()
-        G = pycd.CommunityGraph(G)
-        G_ = solver.detect(G, depth=1, iterations=5, informed=False)
-        modularity.append(pycd.CommunityMetrics.modularity(G_))
+        graph = nx.karate_club_graph()
+        graph = pycd.CommunityGraph(graph)
+        graph_ = solver.detect(graph, depth=1, iterations=5, informed=False)
+        modularity.append(pycd.CommunityMetrics.modularity(graph_))
 
     print(f"Average modularity : {sum(modularity) / len(modularity)}")
     print(

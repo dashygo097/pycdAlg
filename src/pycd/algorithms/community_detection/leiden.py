@@ -40,7 +40,7 @@ class LeidenSolver(LouvainSolver):
 
             self.v[node] = 0
             old_community = graph.nodes[node]["community"]
-            neighborhood = graph.get_neighborhood(node)
+            neighborhood = graph.neighborhood(node)
 
             node_moved = self.move_node(graph, node, neighborhood)
             if not node_moved:
@@ -80,7 +80,7 @@ class LeidenSolver(LouvainSolver):
                 node,
                 graph.nodes[node]["community"],
                 induced_graph.nodes[node]["community"],
-                induced_graph.get_neighborhood(node),
+                induced_graph.neighborhood(node),
             )
 
     def sync(self, graph: CommunityGraph, graph_: CommunityGraph) -> None:
@@ -109,7 +109,7 @@ class LeidenSolver(LouvainSolver):
                 + colored("LEVEL", "red")
                 + colored(str(level), "red")
                 + " with "
-                + colored(str(graph.get_community_number()), "yellow", attrs=["bold"])
+                + colored(str(graph.community_number()), "yellow", attrs=["bold"])
                 + " vertices",
             )
             if tqdm_bar
@@ -176,7 +176,7 @@ class LeidenSolver(LouvainSolver):
                     + colored(str(level), "red")
                 )
                 pbar.set_description_str(colored("Aggregating Communities...", "green"))
-            graph_ = graph.aggregate()
+            graph_ = graph.aggregate_into()
 
             if informed and pbar is not None:
                 pbar.set_description_str(colored(name + " Algorithm Progress", "green"))
@@ -191,7 +191,7 @@ class LeidenSolver(LouvainSolver):
                 "Current State: "
                 + colored(f"LEVEL{depth}", "red", attrs=["bold"])
                 + " with "
-                + colored(f"{graph_.get_community_number()}", "yellow", attrs=["bold"])
+                + colored(f"{graph_.community_number()}", "yellow", attrs=["bold"])
                 + " communities"
             )
         self.reset()

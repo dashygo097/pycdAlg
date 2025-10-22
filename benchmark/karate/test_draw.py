@@ -12,14 +12,14 @@ class TestKarateDraw(unittest.TestCase):
 
     def test_karate_louvain_draw(self):
         print("--- Louvain ---")
-        G = nx.karate_club_graph()
-        G = pycd.CommunityGraph(G)
+        graph = nx.karate_club_graph()
+        graph = pycd.CommunityGraph(graph)
         solver = pycd.LouvainSolver(resolution=1.0)
-        G_ = solver.detect(G, iterations=5, informed=True)
+        graph_ = solver.detect(graph, iterations=5, informed=True)
         fig, ax = plt.subplots(figsize=(8, 8))
-        G.draw(fig, ax)
+        graph.draw(fig, ax)
         plt.show()
-        print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
+        print(f"Modularity : {pycd.CommunityMetrics.modularity(graph_)}")
 
 
 if __name__ == "__main__":

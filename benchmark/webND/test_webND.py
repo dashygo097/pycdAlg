@@ -18,32 +18,32 @@ class TestWebND(unittest.TestCase):
         else:
             raise FileNotFoundError(f"Dataset not found: {extracted_path}")
 
-        G = nx.read_edgelist(
+        graph = nx.read_edgelist(
             str(extracted_path),
             create_using=nx.Graph(),
             nodetype=int,
             data=[("weight", float)],
         )
 
-        self.G = pycd.CommunityGraph(G)
+        self.graph = pycd.CommunityGraph(graph)
 
     @pycd.timer
     def test_webND_louvain(self):
         solver = pycd.LouvainSolver()
-        G_ = solver.detect(self.G, depth=2, iterations=2, informed=True)
-        print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
+        graph_ = solver.detect(self.graph, depth=2, iterations=2, informed=True)
+        print(f"Modularity : {pycd.CommunityMetrics.modularity(graph_)}")
         print(
-            f"Community-Level Seperations : {pycd.CommunityMetrics.community_level_seperations(G_)}"
+            f"Community-Level Seperations : {pycd.CommunityMetrics.community_level_seperations(graph_)}"
         )
         print("")
 
     @pycd.timer
     def test_webND_leiden(self):
         solver = pycd.LeidenSolver()
-        G_ = solver.detect(self.G, depth=2, iterations=2, informed=True)
-        print(f"Modularity : {pycd.CommunityMetrics.modularity(G_)}")
+        graph_ = solver.detect(self.graph, depth=2, iterations=2, informed=True)
+        print(f"Modularity : {pycd.CommunityMetrics.modularity(graph_)}")
         print(
-            f"Community-Level Seperations : {pycd.CommunityMetrics.community_level_seperations(G_)}"
+            f"Community-Level Seperations : {pycd.CommunityMetrics.community_level_seperations(graph_)}"
         )
         print("")
 

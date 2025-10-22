@@ -30,14 +30,13 @@ class CommunityGraph(Network):
         super().__init__(graph, vertices, edges, drop_unconnected, **kwargs)
 
     def initialize(self) -> None:
+        self._communities: Dict[Any, List[Any]] = {}
         self.node2neigh: Dict[Any, float] = {}
-        self.m: float = self.size(weight="weight")
-
-        self.communities: Dict[Any, List[Any]] = {}
+        self.total_weight: float = self.size(weight="weight")
         self.sigma_tot: Dict[Any, float] = {}
 
         for node in self.nodes:
-            self.communities[node] = [node]
+            self._communities[node] = [node]
             self.nodes[node]["community"] = node
             self.node2neigh[node] = sum(
                 edge_data.get("weight", 1.0)
@@ -46,9 +45,9 @@ class CommunityGraph(Network):
             self.sigma_tot[node] = 0.0
 
     def get_partition(self) -> Dict[Any, List[Any]]:
-        return self.communities.copy()
+        return self._communities.copy()
 
-    def get_neighborhood(self, node: Any) -> Dict[Any, float]:
+    def neighborhood(self, node: Any) -> Dict[Any, float]:
         neighborhood = defaultdict(float)
         for neighbor in self[node]:
             c = self.nodes[neighbor]["community"]
@@ -57,7 +56,7 @@ class CommunityGraph(Network):
 
         return neighborhood
 
-    def get_community_neighborhood(self, community: List[Any]) -> Dict[Any, float]:
+    def community_neighborhood(self, community: List[Any]) -> Dict[Any, float]:
         neighborhood = defaultdict(float)
         for node in community:
             for neighbor in self[node]:
@@ -70,20 +69,22 @@ class CommunityGraph(Network):
 
         return neighborhood
 
-    def get_community_number(self) -> int:
-        return sum(1 for comm in self.communities.values() if comm)
+    def community_number(self) -> int:
+        return sum(1 for comm in self._communities.values() if comm)
 
     def update_cnt(
         self, node, old_community, new_community, neighborhood: Dict
     ) -> None:
-        self.communities[old_community].remove(node)
-        self.communities[new_community].append(node)
+        self._communities[old_community].remove(node)
+        self._communities[new_community].append(node)
         self.nodes[node]["community"] = new_community
         self.sigma_tot[new_community] += neighborhood.get(new_community, 0.0)
         self.sigma_tot[old_community] -= neighborhood.get(old_community, 0.0)
 
-    def aggregate(self):
-        return self._aggregate(self)
+    def aggregate_into(
+        self, communities: Optional[Dict[Any, List[Any]]] = None
+    ) -> "CommunityGraph":
+        return self._aggregate_into(self, communities)
 
     def draw(
         self,
@@ -210,12 +211,13 @@ class CommunityGraph(Network):
         ax.margins(0.05)
         plt.tight_layout()
 
-    @classmethod
-    def _aggregate(cls, inst, communities=None):
+    def _aggregate_into(
+        self, inst: "CommunityGraph", communities: Optional[Dict[Any, List[Any]]] = None
+    ) -> "CommunityGraph":
         """Labels are discarded after aggregation. (label_returned=index only)"""
 
         if communities is None:
-            communities = inst.communities
+            communities = inst._communities
 
         else:
             assert isinstance(communities, Dict), (
@@ -223,14 +225,14 @@ class CommunityGraph(Network):
             )
 
         G = nx.Graph()
-        for node, community in inst.communities.items():
+        for node, community in inst._communities.items():
             if community:
                 G.add_node(node)
-                neighborhood = inst.get_community_neighborhood(community)
+                neighborhood = inst.community_neighborhood(community)
                 for neighbor, weight in neighborhood.items():
                     G.add_edge(node, neighbor, weight=weight)
 
-        return cls(G)
+        return CommunityGraph(G)
 
     def _extract_local_subgraph(self, depth: int) -> nx.Graph:
         nodes = list(self.nodes())[:5]

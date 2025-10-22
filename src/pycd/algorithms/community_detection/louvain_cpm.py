@@ -27,11 +27,11 @@ class LouvainCPMSolver(LouvainSolver):
         communities = []
         weights = []
 
-        nc_old = len(graph.communities[graph.nodes[node]["community"]])
+        nc_old = len(graph.get_partition()[graph.nodes[node]["community"]])
 
         for community in neighborhood.keys():
             ki_in = neighborhood[community]
-            nc_new = len(graph.communities[community])
+            nc_new = len(graph.get_partition()[community])
 
             delta = ki_in - self.resolution * (nc_new - nc_old + 1)
 
