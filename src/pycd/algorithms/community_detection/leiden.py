@@ -42,8 +42,7 @@ class LeidenSolver(LouvainSolver):
             old_community = graph.nodes[node]["community"]
             neighborhood = graph.neighborhood(node)
 
-            node_moved = self.move_node(graph, node, neighborhood)
-            if not node_moved:
+            if not self.move_node(graph, node, neighborhood):
                 continue
 
             new_community = graph.nodes[node]["community"]
