@@ -24,7 +24,7 @@ class CommunityMetrics:
         for community in non_empty:
             for v1, v2 in product(community, repeat=2):
                 try:
-                    w = e[v1, v2].get("weight", 1.0)
+                    w = e[v1, v2].get("weight", 1)
                 except KeyError:
                     w = 0.0
 
